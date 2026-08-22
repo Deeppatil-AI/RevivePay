@@ -56,8 +56,8 @@ graph TD
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/your-username/revivepay-razorpay-sentinel.git
-cd revivepay-razorpay-sentinel
+git clone https://github.com/Deeppatil-AI/RevivePay.git
+cd RevivePay
 npm install
 ```
 

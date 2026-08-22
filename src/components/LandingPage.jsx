@@ -31,7 +31,7 @@ export default function LandingPage({ onLaunchConsole }) {
     node: `import { RevivePay } from '@razorpay/revivepay-sdk';
 
 const revive = new RevivePay({
-  apiKey: process.env.RAZORPAY_KEY,
+  apiKey: import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_sec_99481',
   policy: { maxDiscountCap: 250, autoEscalateAbove: 10000 }
 });
 

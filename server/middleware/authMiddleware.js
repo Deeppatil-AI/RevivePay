@@ -8,8 +8,8 @@ if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process
 }
 
 export function authMiddleware(req, res, next) {
-  // Allow health checks without auth
-  if (req.path === '/api/health' || req.path.startsWith('/api/auth/')) {
+  // Allow health checks and metrics without auth
+  if (req.path === '/api/health' || req.path === '/api/metrics' || req.path.startsWith('/api/auth/')) {
     return next();
   }
 

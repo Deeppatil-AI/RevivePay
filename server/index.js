@@ -61,7 +61,7 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const duration = Date.now() - start;
     metrics.totalLatencyMs += duration;
-    if (res.statusCode >= 400) {
+    if (res.statusCode >= 500) {
       metrics.errorCount++;
     }
   });
@@ -91,23 +91,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Observability & Metrics endpoint
+// Observability & Metrics endpoint (public)
 app.get('/api/metrics', (req, res) => {
   const avgLatencyMs = metrics.requestCount > 0 
     ? Math.round(metrics.totalLatencyMs / metrics.requestCount) 
     : 0;
 
   res.json({
-    success: true,
-    metrics: {
-      requestCount: metrics.requestCount,
-      errorCount: metrics.errorCount,
-      averageLatencyMs: avgLatencyMs,
-      errorRatePct: metrics.requestCount > 0 ? Number(((metrics.errorCount / metrics.requestCount) * 100).toFixed(2)) : 0,
-      uptimeSeconds: Math.floor(process.uptime()),
-      startedAt: metrics.startedAt,
-      systemMemoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
-    }
+    requestCount: metrics.requestCount,
+    errorCount: metrics.errorCount,
+    avgLatencyMs,
+    uptimeSeconds: Math.floor(process.uptime()),
+    systemMemoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+    startedAt: metrics.startedAt
   });
 });
 

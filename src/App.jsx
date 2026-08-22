@@ -19,6 +19,7 @@ import VoiceCallModal from './components/VoiceCallModal.jsx';
 import SplitPaymentModal from './components/SplitPaymentModal.jsx';
 import AgenticCommerceModal from './components/AgenticCommerceModal.jsx';
 import AuditCertificateModal from './components/AuditCertificateModal.jsx';
+import AgentStudioModal from './components/AgentStudioModal.jsx';
 import DemoTourModal from './components/DemoTourModal.jsx';
 import LiveCliDrawer from './components/LiveCliDrawer.jsx';
 
@@ -50,6 +51,7 @@ export default function App() {
   const [activeSplitTxn, setActiveSplitTxn] = useState(null);
   const [isAgenticOpen, setIsAgenticOpen] = useState(false);
   const [isCertOpen, setIsCertOpen] = useState(false);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [isDemoTourOpen, setIsDemoTourOpen] = useState(false);
 
   // Sync data with backend on load
@@ -288,6 +290,7 @@ export default function App() {
         onGoToLanding={() => setCurrentView('landing')}
         onOpenAgenticModal={() => setIsAgenticOpen(true)}
         onOpenCertModal={() => setIsCertOpen(true)}
+        onOpenAgentStudio={() => setIsStudioOpen(true)}
         onStartDemoTour={() => setIsDemoTourOpen(true)}
       />
 
@@ -356,6 +359,12 @@ export default function App() {
         onOpenAgentic={() => setIsAgenticOpen(true)}
         onOpenCert={() => setIsCertOpen(true)}
         onTriggerChaos={() => syncWithBackend()}
+      />
+
+      {/* Agent Studio Modal (Razorpay Vulcan & Claude SDK) */}
+      <AgentStudioModal
+        isOpen={isStudioOpen}
+        onClose={() => setIsStudioOpen(false)}
       />
 
       {/* Modals & Dialogs */}
@@ -436,7 +445,7 @@ export default function App() {
             Razorpay RevivePay Enterprise AI Platform • Subscriptions, B2B Invoices & Dispute Sentinel
           </span>
           <span className="font-mono text-[11px] text-slate-400">
-            Express Backend API Active (:5000) • Compliant with RBI/2020-21/74 & Visa Level-1 Arbitration
+            Powered by Razorpay Vulcan AI Foundation Model & Agent Studio • Express Backend Active (:5000)
           </span>
         </div>
       </footer>

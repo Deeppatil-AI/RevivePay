@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Zap, Activity, Sliders, RefreshCw, Layers, 
   Building2, ShieldCheck, Radio, BarChart3, Globe, 
-  Bot, Award, Menu, X, Sparkles 
+  Bot, Award, Menu, X, Sparkles, BrainCircuit 
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -14,7 +14,8 @@ export default function Navbar({
   onGoToLanding,
   onOpenAgenticModal,
   onOpenCertModal,
-  onStartDemoTour
+  onOpenAgentStudio,
+  onStartDemoTour 
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -46,7 +47,7 @@ export default function Navbar({
               </span>
             </div>
             <p className="text-[10px] text-slate-500 font-mono hidden sm:block">
-              Autonomous Revenue Recovery, B2B Chaser & Dispute Defense
+              Powered by Razorpay Vulcan Foundation Model & Agent Studio
             </p>
           </div>
         </div>
@@ -62,6 +63,14 @@ export default function Navbar({
             <Sparkles className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">60s Demo Tour</span>
             <span className="sm:hidden">Demo</span>
+          </button>
+
+          <button
+            onClick={onOpenAgentStudio}
+            className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-[#0066FF] text-xs font-bold transition-all shadow-sm"
+          >
+            <BrainCircuit className="h-3.5 w-3.5" />
+            <span>Agent Studio</span>
           </button>
 
           <button
@@ -160,6 +169,13 @@ export default function Navbar({
       {/* Mobile Actions Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-slate-50 border-t border-slate-200 p-3 space-y-2 text-xs">
+          <button
+            onClick={() => { onOpenAgentStudio(); setMobileMenuOpen(false); }}
+            className="w-full py-2 px-3 rounded-xl bg-sky-50 text-sky-800 font-bold border border-sky-200 flex items-center justify-between"
+          >
+            <span>Razorpay Agent Studio (Vulcan AI)</span>
+            <BrainCircuit className="h-4 w-4" />
+          </button>
           <button
             onClick={() => { onOpenAgenticModal(); setMobileMenuOpen(false); }}
             className="w-full py-2 px-3 rounded-xl bg-purple-50 text-purple-700 font-bold border border-purple-200 flex items-center justify-between"

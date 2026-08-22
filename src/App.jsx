@@ -19,8 +19,6 @@ import VoiceCallModal from './components/VoiceCallModal.jsx';
 import SplitPaymentModal from './components/SplitPaymentModal.jsx';
 import AgenticCommerceModal from './components/AgenticCommerceModal.jsx';
 import AuditCertificateModal from './components/AuditCertificateModal.jsx';
-import AgentStudioModal from './components/AgentStudioModal.jsx';
-import DemoTourModal from './components/DemoTourModal.jsx';
 import LiveCliDrawer from './components/LiveCliDrawer.jsx';
 
 import { generateFullBatch } from './data/syntheticBatch.js';
@@ -51,8 +49,6 @@ export default function App() {
   const [activeSplitTxn, setActiveSplitTxn] = useState(null);
   const [isAgenticOpen, setIsAgenticOpen] = useState(false);
   const [isCertOpen, setIsCertOpen] = useState(false);
-  const [isStudioOpen, setIsStudioOpen] = useState(false);
-  const [isDemoTourOpen, setIsDemoTourOpen] = useState(false);
 
   // Sync data with backend on load
   const syncWithBackend = async () => {
@@ -280,7 +276,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0c2340] flex flex-col selection:bg-[#0066FF] selection:text-white font-sans pb-16">
       
-      {/* Top Navbar with Multi-Module Tabs */}
+      {/* Top Navbar */}
       <Navbar
         onOpenPolicy={() => setIsPolicyOpen(true)}
         onResetBatch={handleResetBatch}
@@ -290,8 +286,6 @@ export default function App() {
         onGoToLanding={() => setCurrentView('landing')}
         onOpenAgenticModal={() => setIsAgenticOpen(true)}
         onOpenCertModal={() => setIsCertOpen(true)}
-        onOpenAgentStudio={() => setIsStudioOpen(true)}
-        onStartDemoTour={() => setIsDemoTourOpen(true)}
       />
 
       {/* Chaos Monkey Disaster Simulator Banner */}
@@ -350,22 +344,6 @@ export default function App() {
 
       {/* Real-time CLI Webhook Stream Drawer */}
       <LiveCliDrawer />
-
-      {/* Demo Tour Modal */}
-      <DemoTourModal
-        isOpen={isDemoTourOpen}
-        onClose={() => setIsDemoTourOpen(false)}
-        onSelectTab={(tabId) => setActiveTab(tabId)}
-        onOpenAgentic={() => setIsAgenticOpen(true)}
-        onOpenCert={() => setIsCertOpen(true)}
-        onTriggerChaos={() => syncWithBackend()}
-      />
-
-      {/* Agent Studio Modal (Razorpay Vulcan & Claude SDK) */}
-      <AgentStudioModal
-        isOpen={isStudioOpen}
-        onClose={() => setIsStudioOpen(false)}
-      />
 
       {/* Modals & Dialogs */}
       <PolicyConfigModal
@@ -445,7 +423,7 @@ export default function App() {
             Razorpay RevivePay Enterprise AI Platform • Subscriptions, B2B Invoices & Dispute Sentinel
           </span>
           <span className="font-mono text-[11px] text-slate-400">
-            Powered by Razorpay Vulcan AI Foundation Model & Agent Studio • Express Backend Active (:5000)
+            Express Backend Active (:5000) • Compliant with RBI/2020-21/74 & Visa Level-1 Arbitration
           </span>
         </div>
       </footer>

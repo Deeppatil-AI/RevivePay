@@ -3,6 +3,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import { seedDatabase } from './database/seed.js';
 import recoveryRoutes from './routes/recoveryRoutes.js';
 import disputeRoutes from './routes/disputeRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
@@ -43,6 +44,9 @@ app.use((err, req, res, next) => {
   console.error("Backend Error:", err);
   res.status(500).json({ success: false, error: err.message || "Internal Server Error" });
 });
+
+// Seed DB if empty
+seedDatabase();
 
 app.listen(PORT, () => {
   console.log(`🚀 RevivePay Enterprise Backend running on http://localhost:${PORT}`);

@@ -65,7 +65,7 @@ export function negotiateAgenticCommerce(buyerAgentPayload) {
       actionDetail: `Settled ₹${agreedTotal.toLocaleString('en-IN')} with cryptographic signature ${cryptographicSignature}.`,
       timestamp: new Date().toISOString()
     };
-    db.auditLogs.unshift(auditEntry);
+    db.addAuditLog(auditEntry);
   }
 
   return negotiationResult;

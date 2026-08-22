@@ -64,10 +64,8 @@ export async function processSingleTransaction(txn) {
   };
 
   // Update in DB
-  const idx = db.subscriptions.findIndex(s => s.id === txn.id);
-  if (idx !== -1) {
-    db.subscriptions[idx] = { ...db.subscriptions[idx], recoveryResult };
-  }
+  const updatedTxn = { ...txn, recoveryResult };
+  db.updateSubscription(updatedTxn);
 
   // Add to Audit Ledger
   const auditEntry = {
@@ -84,7 +82,7 @@ export async function processSingleTransaction(txn) {
     paymentLink,
     timestamp: new Date().toISOString()
   };
-  db.auditLogs.unshift(auditEntry);
+  db.addAuditLog(auditEntry);
 
-  return { txn: db.subscriptions[idx], auditEntry };
+  return { txn: updatedTxn, auditEntry };
 }

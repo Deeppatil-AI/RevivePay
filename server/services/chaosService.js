@@ -71,7 +71,7 @@ export function triggerChaosOutage(bankKey = "SBI", scenario = "MIDNIGHT_CBS_LOC
     actionDetail: `Rescheduled ${rescheduledCount} ${bankKey} debits to morning window. Total penalty fees saved: ₹${rescheduledCount * 45}.`,
     timestamp: new Date().toISOString()
   };
-  db.auditLogs.unshift(auditEntry);
+  db.addAuditLog(auditEntry);
 
   return { activeChaosMode, rescheduledCount, auditEntry };
 }

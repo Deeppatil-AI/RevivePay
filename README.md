@@ -52,6 +52,18 @@ graph TD
 
 ---
 
+## 🔌 Razorpay Live Test-Mode vs. Simulated Modules
+
+| Module / Flow | Implementation Status | Integration Details |
+| :--- | :--- | :--- |
+| **Webhook Signature Verification** | 🟢 **Live-Wired (Test Mode)** | Validated using official `Razorpay.validateWebhookSignature()` & `crypto` HMAC-SHA256. |
+| **Payment Links API Dispatch** | 🟢 **Live-Wired (Test Mode)** | Built with official `razorpay` Node SDK (`razorpay.paymentLink.create()`) with automatic sandbox link fallback. |
+| **Bank CBS Telemetry & Outage Interception** | 🟡 **Simulated Engine** | Simulates live SBI/HDFC/PNB switch dropouts (0% SR) and automated Morning Health Window reschedules. |
+| **DisputeShield Dossier Generator** | 🟡 **Simulated Engine** | Compiles Visa/Mastercard 4-point evidence dossiers (3DS RRNs, OTP proof, logistics waybills) formatted for Razorpay Dispute API. |
+| **Agentic UAP M2M Protocol** | 🟡 **Simulated Protocol** | Implements the emerging NPCI Universal Agent Protocol & x402 machine settlement standard. |
+
+---
+
 ## ⚡ Quick Start
 
 ### 1. Clone & Install Dependencies

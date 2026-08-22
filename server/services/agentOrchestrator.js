@@ -2,6 +2,7 @@ import { db } from '../database/store.js';
 import { runDiagnosis } from '../../src/engine/diagnosisAgent.js';
 import { schedulePredictiveRetry } from '../../src/engine/retryScheduler.js';
 import { evaluateBackendPolicy } from './policyEngine.js';
+import { RazorpayService } from './razorpayClient.js';
 import { RazorpayClient } from '../../src/engine/razorpayMockClient.js';
 
 export async function processSingleTransaction(txn) {
@@ -38,7 +39,7 @@ export async function processSingleTransaction(txn) {
       actionType = "PREDICTIVE_MANDATE_RESCHEDULE";
       actionDetail = `Auto-rescheduled for ${retryPlan.scheduledTime}. Prevented NPCI rate-limit penalty.`;
     } else {
-      const linkRes = await RazorpayClient.createPaymentLink({
+      const linkRes = await RazorpayService.createPaymentLink({
         amount: policyResult.finalPayableAmount,
         customerName: txn.customerName,
         customerEmail: txn.email,

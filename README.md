@@ -1,26 +1,20 @@
-# ⚡ Razorpay RevivePay AI Sentinel
+# Razorpay RevivePay Enterprise Sentinel
 
-> **Autonomous AI Revenue Recovery, B2B Receivables Chaser & Dispute Defense Platform**  
-> *Built for the Razorpay AI Hackathon (Covering Tracks 01, 02, 03, and 04)*
+[![CI / Build & Test](https://github.com/Deeppatil-AI/RevivePay/actions/workflows/ci.yml/badge.svg)](https://github.com/Deeppatil-AI/RevivePay/actions/workflows/ci.yml)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Razorpay AI Hackathon](https://img.shields.io/badge/Razorpay-AI%20Hackathon%202026-blue.svg)](https://razorpay.com)
+[![Docker Ready](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](./Dockerfile)
 
-[![React](https://img.shields.io/badge/React-18.3-61dafb?logo=react)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-18.x-339933?logo=node.js)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express-4.x-black?logo=express)](https://expressjs.com/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
-[![RBI Compliance](https://img.shields.io/badge/RBI%20Circular-RBI%2F2020--21%2F74-0066FF)](https://rbi.org.in/)
-[![Dispute Win Rate](https://img.shields.io/badge/Chargeback%20Win%20Rate-91.4%25-emerald)](https://razorpay.com/)
+> **Autonomous Revenue Recovery, B2B Accounts Receivable Chaser, and Chargeback Defense Sentinel built for the Razorpay Fintech Ecosystem.**
 
 ---
 
-## 📌 Executive Summary
+## 🌐 Live Demo & Endpoints
 
-Indian subscription merchants lose **35% of recurring revenue** to involuntary payment failures:
-1. **Midnight Core Banking (CBS) Outages**: Indian banks (SBI, HDFC, PNB) lock their CBS servers between 11 PM – 3 AM for reconciliation batch processing, failing legitimate UPI AutoPay debits.
-2. **Blind Retry Bounce Fees**: Merchants burning blind retries violate NPCI cooling rules and incur customer bounce charges.
-3. **Month-End Liquidity Crunch**: Salary delays cause temporary insufficient balance (`NPCI_ZM`).
-4. **B2B Invoice Delays & Fraudulent Chargebacks**: Manual follow-ups and unorganized dispute evidence cost millions in uncollected ARR.
-
-**RevivePay AI Sentinel** is an autonomous multi-agent platform integrated with Razorpay that monitors real-time Indian bank telemetry, reschedules mandate retries to morning health windows, triggers 1-click WhatsApp/Voice recovery across 5 Indian languages, negotiates machine-to-machine Agentic commerce (NPCI UAP), and compiles legal dispute evidence dossiers.
+- **Live Application Dashboard**: [http://localhost:5173](http://localhost:5173) (or production container `:5000`)
+- **Backend REST API Health**: `http://localhost:5000/api/health`
+- **GitHub Repository**: [https://github.com/Deeppatil-AI/RevivePay](https://github.com/Deeppatil-AI/RevivePay)
 
 ---
 
@@ -28,7 +22,8 @@ Indian subscription merchants lose **35% of recurring revenue** to involuntary p
 
 ```mermaid
 graph TD
-    Client[Pure White Razorpay UI :5173] <-->|REST API + Webhooks| Server[Node/Express Backend :5000]
+    Client[Pure White Razorpay UI :5173] <-->|JWT Auth + REST API| Server[Node/Express Backend :5000]
+    Server <--> SQLite[(SQLite Database / better-sqlite3)]
     
     Server --> M1[1. Subscriptions Batch Recovery & Auto-Pilot]
     Server --> M2[2. Chaos Monkey Bank Outage Simulator]
@@ -37,6 +32,8 @@ graph TD
     Server --> M5[5. DisputeShield Chargeback Defense Dossiers]
     Server --> M6[6. Vernacular Indian Languages Engine]
     Server --> M7[7. Verifiable RBI Audit Certificate & CLI Stream]
+    
+    Server <--> RZP[Official Razorpay Node SDK & HMAC-SHA256 Webhooks]
 ```
 
 ---
@@ -58,6 +55,8 @@ graph TD
 | :--- | :--- | :--- |
 | **Webhook Signature Verification** | 🟢 **Live-Wired (Test Mode)** | Validated using official `Razorpay.validateWebhookSignature()` & `crypto` HMAC-SHA256. |
 | **Payment Links API Dispatch** | 🟢 **Live-Wired (Test Mode)** | Built with official `razorpay` Node SDK (`razorpay.paymentLink.create()`) with automatic sandbox link fallback. |
+| **JWT Merchant Authentication** | 🟢 **Live-Wired** | JWT Bearer auth with merchant ID scoping, express rate limiting, and demo bypass flag. |
+| **Persistent Data Storage** | 🟢 **Live-Wired** | Full SQLite persistence via `better-sqlite3` with standalone seeding script. |
 | **Bank CBS Telemetry & Outage Interception** | 🟡 **Simulated Engine** | Simulates live SBI/HDFC/PNB switch dropouts (0% SR) and automated Morning Health Window reschedules. |
 | **DisputeShield Dossier Generator** | 🟡 **Simulated Engine** | Compiles Visa/Mastercard 4-point evidence dossiers (3DS RRNs, OTP proof, logistics waybills) formatted for Razorpay Dispute API. |
 | **Agentic UAP M2M Protocol** | 🟡 **Simulated Protocol** | Implements the emerging NPCI Universal Agent Protocol & x402 machine settlement standard. |
@@ -66,34 +65,65 @@ graph TD
 
 ## ⚡ Quick Start
 
-### 1. Clone & Install Dependencies
+### Option A: Local Development
+
 ```bash
+# 1. Clone the repository
 git clone https://github.com/Deeppatil-AI/RevivePay.git
 cd RevivePay
+
+# 2. Install dependencies
 npm install
-```
 
-### 2. Start Express Backend & Frontend Dev Server
-```bash
-# Terminal 1: Backend API (:5000)
-node server/index.js
+# 3. Seed SQLite Database
+npm run seed
 
-# Terminal 2: Vite Frontend (:5173)
+# 4. Run Unit Tests (Vitest)
+npm test
+
+# 5. Start Backend API (:5000) and Frontend (:5173)
+# Terminal 1:
+npm run server
+
+# Terminal 2:
 npm run dev
 ```
 
-### 3. Open in Browser
-- **Frontend Dashboard & Landing Page**: `http://localhost:5173`
-- **Backend API Health Check**: `http://localhost:5000/api/health`
+### Option B: Docker One-Command Spin-up
+
+```bash
+# Spin up production container (builds frontend, seeds database, and serves on :5000)
+docker compose up --build
+```
+Access the app at `http://localhost:5000`.
+
+---
+
+## 🧪 Automated Testing & CI
+
+```bash
+# Run unit tests across policy gating, retry scheduler, and webhook verification
+npm test
+```
+Continuous Integration is configured with GitHub Actions (`.github/workflows/ci.yml`) to validate dependencies, run unit tests, and build production assets on every push.
 
 ---
 
 ## 🔌 API Reference
 
+### Authentication & Tokens
+- `POST /api/auth/token` — Mint a signed JWT token for a merchant ID (`{ "merchantId": "merchant_rzp_primary" }`).
+- `GET /api/auth/verify` — Inspect current merchant token context.
+
 ### Recovery & Subscriptions
-- `GET /api/recovery/transactions` — Fetch cohort transactions.
+- `GET /api/recovery/transactions` — Fetch cohort transactions from SQLite.
 - `POST /api/recovery/process/:id` — Execute autonomous diagnosis and recovery.
-- `POST /api/recovery/process-batch` — Process entire transaction batch.
+- `POST /api/recovery/process-batch` — Process entire transaction batch in parallel.
+- `POST /api/recovery/reset` — Re-seed cohort dataset.
+
+### Webhooks & Live Ingestion
+- `POST /api/webhooks/razorpay` — Ingest live Razorpay webhook events with HMAC-SHA256 signature validation.
+- `POST /api/webhooks/simulate` — Inject custom bank switch failure events.
 
 ### Chaos Monkey Outage Simulator
 - `POST /api/chaos/trigger` — Simulate live bank outage (e.g., SBI midnight CBS crash).

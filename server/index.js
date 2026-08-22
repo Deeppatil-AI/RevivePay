@@ -59,6 +59,23 @@ app.use('/api/chaos', chaosRoutes);
 app.use('/api/agentic-commerce', agenticRoutes);
 app.use('/api/reports', reportRoutes);
 
+// Serve frontend static build in production
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, '../dist');
+
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error("Backend Error:", err);

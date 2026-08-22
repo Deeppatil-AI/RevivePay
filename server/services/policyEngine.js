@@ -1,16 +1,22 @@
 import { db } from '../database/store.js';
 
 export function evaluateBackendPolicy(txn, proposedAction) {
-  const merchantPolicy = db.policy;
+  const p = db.policy || {};
+  const maxDiscountPercentage = p.maxDiscountPercentage || 8;
+  const maxDiscountRupeesCap = p.maxDiscountRupeesCap || p.absoluteDiscountCapRupees || 250;
+  const minLtvForIncentive = p.minLtvForIncentive || p.minCustomerLtvForDiscount || 8000;
+  const requireHumanApprovalAboveAmount = p.requireHumanApprovalAboveAmount || p.escalateAboveRupees || 10000;
+  const maxAutomatedRetries = p.maxAutomatedRetries || p.maxAutomaticRetries || 3;
+
   const auditId = `audit_srv_${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`;
   const auditToken = `sha256_${Buffer.from(txn.id + txn.amount + auditId).toString('base64').substring(0, 16)}`;
 
   // Rule 1: High ticket human escalation
-  if (txn.amount >= merchantPolicy.requireHumanApprovalAboveAmount) {
+  if (txn.amount >= requireHumanApprovalAboveAmount) {
     return {
       status: "ESCALATED",
       actionApproved: false,
-      reason: `Amount ₹${txn.amount.toLocaleString('en-IN')} exceeds autonomous threshold (₹${merchantPolicy.requireHumanApprovalAboveAmount.toLocaleString('en-IN')}). Routed to CFO desk.`,
+      reason: `Amount ₹${txn.amount.toLocaleString('en-IN')} exceeds autonomous threshold (₹${requireHumanApprovalAboveAmount.toLocaleString('en-IN')}). Routed to CFO desk.`,
       appliedDiscount: 0,
       finalPayableAmount: txn.amount,
       auditId,
@@ -20,11 +26,11 @@ export function evaluateBackendPolicy(txn, proposedAction) {
   }
 
   // Rule 2: Max retries stopping rule
-  if (txn.retryCount >= merchantPolicy.maxAutomatedRetries) {
+  if ((txn.retryCount || 0) >= maxAutomatedRetries) {
     return {
       status: "BLOCKED",
       actionApproved: false,
-      reason: `Maximum retry count (${merchantPolicy.maxAutomatedRetries}) reached under RBI circular. Halting auto-retry.`,
+      reason: `Maximum retry count (${maxAutomatedRetries}) reached under RBI circular. Halting auto-retry.`,
       appliedDiscount: 0,
       finalPayableAmount: txn.amount,
       auditId,
@@ -38,9 +44,9 @@ export function evaluateBackendPolicy(txn, proposedAction) {
   let incentiveApproved = false;
 
   if (proposedAction === "OFFER_RETENTION_DISCOUNT") {
-    if (txn.customerLtv >= merchantPolicy.minLtvForIncentive && txn.churnRisk === "HIGH") {
-      const calculatedPctDiscount = Math.round((txn.amount * merchantPolicy.maxDiscountPercentage) / 100);
-      appliedDiscount = Math.min(calculatedPctDiscount, merchantPolicy.maxDiscountRupeesCap);
+    if ((txn.customerLtv || 0) >= minLtvForIncentive && txn.churnRisk === "HIGH") {
+      const calculatedPctDiscount = Math.round((txn.amount * maxDiscountPercentage) / 100);
+      appliedDiscount = Math.min(calculatedPctDiscount, maxDiscountRupeesCap);
       incentiveApproved = true;
     }
   }
@@ -52,7 +58,7 @@ export function evaluateBackendPolicy(txn, proposedAction) {
     appliedDiscount,
     finalPayableAmount: txn.amount - appliedDiscount,
     discountReason: incentiveApproved 
-      ? `Bounded ₹${appliedDiscount} retention discount authorized (LTV ₹${txn.customerLtv.toLocaleString('en-IN')}, High Churn Risk).` 
+      ? `Bounded ₹${appliedDiscount} retention discount authorized (LTV ₹${(txn.customerLtv || 0).toLocaleString('en-IN')}, High Churn Risk).` 
       : "Standard pricing maintained.",
     auditId,
     auditToken,

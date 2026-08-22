@@ -25,13 +25,13 @@ router.get('/events', (req, res) => {
 
 // POST real Razorpay webhook listener with signature verification
 router.post('/razorpay', async (req, res) => {
-  const signature = req.headers['x-razorpay-signature'] || 'simulated_sig';
+  const signature = req.headers['x-razorpay-signature'];
   const bodyString = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
   const isSignatureValid = RazorpayService.validateWebhookSignature(bodyString, signature);
 
-  if (!isSignatureValid && process.env.AUTH_BYPASS_DEMO === 'false') {
-    logger.warn({ event: 'WEBHOOK_SIGNATURE_INVALID', signature }, 'Invalid Razorpay webhook signature');
-    return res.status(400).json({ success: false, error: 'Invalid Razorpay webhook signature (HMAC-SHA256 mismatch)' });
+  if (!isSignatureValid) {
+    logger.warn({ event: 'WEBHOOK_SIGNATURE_INVALID', signaturePresent: Boolean(signature) }, 'Invalid or missing Razorpay webhook signature');
+    return res.status(400).json({ success: false, error: 'Invalid or missing Razorpay webhook signature (HMAC-SHA256 mismatch)' });
   }
 
   const event = req.body;
@@ -129,15 +129,16 @@ router.post('/simulate', async (req, res) => {
 
   const payloadString = JSON.stringify(mockPayload);
   const testSignature = RazorpayService.generateTestSignature(payloadString);
+  const isSignatureValid = RazorpayService.validateWebhookSignature(payloadString, testSignature);
 
   const eventRecord = {
     id: `whevt_sim_${Date.now().toString(36)}`,
     eventType: mockPayload.event,
     payload: mockPayload,
-    signatureVerified: true,
+    signatureVerified: isSignatureValid,
     testSignature,
     receivedAt: new Date().toISOString(),
-    status: "PROCESSED_BY_SENTINEL"
+    status: isSignatureValid ? "PROCESSED_BY_SENTINEL" : "SIGNATURE_VALIDATION_FAILED"
   };
 
   db.addWebhookEvent(eventRecord);

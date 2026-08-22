@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-[#f8fafc] text-[#0c2340];
+    @apply bg-[#f8fafc] text-[#0c2340] dark:bg-[#070e1c] dark:text-[#f8fafc];
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
@@ -17,9 +17,15 @@
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
+.dark ::-webkit-scrollbar-track {
+  background: #0f1c33;
+}
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e3a5f;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #0066ff;
@@ -31,10 +37,19 @@
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
 }
+.dark .razor-card {
+  background: #0b192e;
+  border: 1px solid #1e3a5f;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+}
 
 .razor-card-hover:hover {
   border-color: #93c5fd;
   box-shadow: 0 4px 12px -1px rgba(0, 102, 255, 0.08);
+}
+.dark .razor-card-hover:hover {
+  border-color: #3395ff;
+  box-shadow: 0 0 25px rgba(51, 149, 255, 0.2);
 }
 
 .razor-gradient-text {
@@ -42,23 +57,28 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+.dark .razor-gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #3395ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
 .razor-badge-success {
-  @apply bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  @apply bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full text-xs font-semibold;
 }
 
 .razor-badge-warning {
-  @apply bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  @apply bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60 px-2.5 py-0.5 rounded-full text-xs font-semibold;
 }
 
 .razor-badge-danger {
-  @apply bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  @apply bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60 px-2.5 py-0.5 rounded-full text-xs font-semibold;
 }
 
 .razor-badge-info {
-  @apply bg-sky-50 text-sky-700 border border-sky-200 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  @apply bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800/60 px-2.5 py-0.5 rounded-full text-xs font-semibold;
 }
 
 .razor-badge-neutral {
-  @apply bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  @apply bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700 px-2.5 py-0.5 rounded-full text-xs font-medium;
 }

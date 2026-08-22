@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { 
   Zap, Activity, RefreshCw, Layers, 
   Building2, ShieldCheck, Radio, BarChart3, Globe, 
-  Bot, Award, Menu, X 
+  Bot, Award, Menu, X, Sun, Moon 
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext.jsx';
 
 export default function Navbar({ 
   onResetBatch, 
@@ -15,6 +16,7 @@ export default function Navbar({
   onOpenCertModal 
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
 
   const navItems = [
     { id: 'batch', label: 'Subscriptions Batch', icon: Layers, count: `${stats.totalProcessed}/${stats.totalCount}` },
@@ -76,9 +78,17 @@ export default function Navbar({
           </button>
 
           <button
+            onClick={toggleTheme}
+            title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 transition-all"
+          >
+            {isDark ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-slate-600" />}
+          </button>
+
+          <button
             onClick={onResetBatch}
             title="Reset Simulation Data"
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 transition-all"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 transition-all"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
@@ -87,16 +97,23 @@ export default function Navbar({
         {/* Mobile Hamburger Menu Toggle */}
         <div className="flex md:hidden items-center gap-1.5">
           <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700"
+          >
+            {isDark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-600" />}
+          </button>
+
+          <button
             onClick={onResetBatch}
             title="Reset Cohort"
-            className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-600"
+            className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 transition-colors"
+            className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 transition-colors"
             aria-label="Toggle Menu"
           >
             {mobileMenuOpen ? <X className="h-5 w-5 text-[#0066FF]" /> : <Menu className="h-5 w-5" />}

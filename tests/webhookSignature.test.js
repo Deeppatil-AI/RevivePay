@@ -28,8 +28,14 @@ describe('Razorpay Webhook Signature Verification (Test Mode)', () => {
     expect(isValid).toBe(false);
   });
 
-  it('allows simulated_sig under demo bypass mode', () => {
-    const isValid = RazorpayService.validateWebhookSignature(payload, 'simulated_sig');
-    expect(isValid).toBe(true);
+  it('rejects simulated_sig or arbitrary invalid signature strings', () => {
+    const isValidSimulated = RazorpayService.validateWebhookSignature(payload, 'simulated_sig');
+    expect(isValidSimulated).toBe(false);
+
+    const isValidEmpty = RazorpayService.validateWebhookSignature(payload, '');
+    expect(isValidEmpty).toBe(false);
+
+    const isValidRandom = RazorpayService.validateWebhookSignature(payload, 'invalid_fake_signature_hex_1234567890');
+    expect(isValidRandom).toBe(false);
   });
 });

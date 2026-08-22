@@ -169,5 +169,14 @@ Continuous Integration is configured with GitHub Actions (`.github/workflows/ci.
 
 ---
 
+## 🔒 Security Notes
+- **Demo Mode vs. Production**: `AUTH_BYPASS_DEMO` is set to `true` by default so judges and live evaluation environments can explore all capabilities with zero login friction.
+- **Production Enforcement**: For production enterprise deployments, set `AUTH_BYPASS_DEMO=false` in your environment and configure custom secrets:
+  - `DEMO_API_KEY`: Required header `x-api-key` to mint merchant tokens at `POST /api/auth/token`.
+  - `JWT_SECRET`: Used to cryptographically sign and verify merchant session tokens.
+  - `RAZORPAY_WEBHOOK_SECRET`: Required to validate real inbound Razorpay webhook HMAC-SHA256 signatures.
+
+---
+
 ## 📜 License
 MIT License • Built with ❤️ for the Razorpay AI Hackathon.

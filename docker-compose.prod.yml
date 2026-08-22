@@ -1,0 +1,30 @@
+version: '3.8'
+
+# Production Docker Compose Configuration
+# Note: AUTH_BYPASS_DEMO is explicitly disabled (false). Valid JWT auth and HMAC signatures are strictly enforced.
+
+services:
+  revivepay-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: revivepay-sentinel-prod
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - AUTH_BYPASS_DEMO=false
+      - DEMO_API_KEY=${DEMO_API_KEY:-replace_with_strong_api_key_for_token_issuance}
+      - JWT_SECRET=${JWT_SECRET:-replace_with_strong_random_jwt_secret_hex}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-rzp_live_your_actual_key_id}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-rzp_live_your_actual_key_secret}
+      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET:-rzp_live_your_webhook_secret}
+      - DATABASE_PATH=/app/data/revivepay.sqlite
+    volumes:
+      - revivepay-prod-data:/app/data
+    restart: always
+
+volumes:
+  revivepay-prod-data:
+    driver: local

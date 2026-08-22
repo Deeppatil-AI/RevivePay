@@ -1,6 +1,11 @@
 import jwt from 'jsonwebtoken';
+import { logger } from '../logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'revivepay_jwt_secret_token_dev_2026';
+
+if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'revivepay_jwt_secret_token_dev_2026')) {
+  logger.warn('⚠️ SECURITY WARNING: JWT_SECRET is missing or using default development token in production mode!');
+}
 
 export function authMiddleware(req, res, next) {
   // Allow health checks without auth
@@ -18,7 +23,6 @@ export function authMiddleware(req, res, next) {
       req.user = decoded;
       return next();
     } catch (err) {
-      // If token is invalid and demo mode is disabled, return 401
       if (process.env.AUTH_BYPASS_DEMO === 'false') {
         return res.status(401).json({ success: false, error: 'Invalid or expired authentication token' });
       }

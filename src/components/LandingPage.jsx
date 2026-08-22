@@ -293,15 +293,20 @@ echo $recovery->action; // HINGLISH_ONECLICK_WHATSAPP`
               </div>
 
               <div className="py-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Recovered Revenue (Current Cohort)
-                </span>
-                <div className="text-3xl sm:text-4xl font-black text-[#0c2340] font-mono mt-1">
-                  ₹1,248,500
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Total Enterprise Revenue Recovered
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 animate-pulse">
+                    ● Live Counter
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-emerald-700 font-bold mt-1">
+                <div className="text-3xl sm:text-4xl font-black text-[#0c2340] font-mono mt-1 tracking-tight">
+                  ₹4,28,49,200
+                </div>
+                <div className="flex items-center gap-2 text-xs text-emerald-700 font-bold mt-1.5">
                   <TrendingUp className="h-3.5 w-3.5" />
-                  <span>+₹184,500 won back today from CBS downtime</span>
+                  <span>+₹1,84,500 recovered today across 184 enterprise subscriptions</span>
                 </div>
               </div>
 

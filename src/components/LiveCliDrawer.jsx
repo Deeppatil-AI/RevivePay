@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal, ChevronUp, ChevronDown, CheckCircle2, ShieldCheck, Activity, Trash2 } from 'lucide-react';
 import { ApiService } from '../services/api.js';
+import { socket } from '../services/socket.js';
 
 export default function LiveCliDrawer() {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,27 +29,45 @@ export default function LiveCliDrawer() {
   ]);
 
   useEffect(() => {
-    const fetchRecent = async () => {
-      try {
-        const res = await ApiService.getWebhookEvents();
-        if (res && res.events && res.events.length > 0) {
-          const formatted = res.events.slice(0, 8).map((e, idx) => ({
-            id: e.id || `log_${idx}`,
-            method: "POST",
-            endpoint: "/api/webhooks/razorpay",
-            status: 200,
-            latency: `${18 + (idx * 3) % 15}ms`,
-            event: e.eventType,
-            signature: "hmac_sha256_verified_true",
-            timestamp: new Date(e.receivedAt || Date.now()).toLocaleTimeString('en-IN')
-          }));
-          setLogs(formatted);
-        }
-      } catch (err) {}
+    // Initial load
+    ApiService.getWebhookEvents().then((res) => {
+      if (res && res.events && res.events.length > 0) {
+        const formatted = res.events.slice(0, 10).map((e, idx) => ({
+          id: e.id || `log_${idx}`,
+          method: "POST",
+          endpoint: "/api/webhooks/razorpay",
+          status: 200,
+          latency: `${18 + (idx * 3) % 15}ms`,
+          event: e.eventType,
+          signature: "hmac_sha256_verified_true",
+          timestamp: new Date(e.receivedAt || Date.now()).toLocaleTimeString('en-IN')
+        }));
+        setLogs(formatted);
+      }
+    }).catch(() => {});
+
+    // Real-time WebSocket subscription
+    const handleWebhookReceived = (evt) => {
+      setLogs((prev) => [
+        {
+          id: evt.id || `log_${Date.now()}`,
+          method: "POST",
+          endpoint: "/api/webhooks/razorpay",
+          status: 200,
+          latency: "12ms",
+          event: evt.eventType || 'webhook.event',
+          signature: evt.signatureVerified ? "hmac_sha256_verified_true" : "demo_verified",
+          timestamp: new Date(evt.receivedAt || Date.now()).toLocaleTimeString('en-IN')
+        },
+        ...prev.slice(0, 15)
+      ]);
     };
 
-    const timer = setInterval(fetchRecent, 3000);
-    return () => clearInterval(timer);
+    socket.on('webhook:received', handleWebhookReceived);
+
+    return () => {
+      socket.off('webhook:received', handleWebhookReceived);
+    };
   }, []);
 
   return (

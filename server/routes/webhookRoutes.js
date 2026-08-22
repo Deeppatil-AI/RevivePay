@@ -1,9 +1,22 @@
 import express from 'express';
+import { z } from 'zod';
 import { db } from '../database/store.js';
 import { processSingleTransaction } from '../services/agentOrchestrator.js';
 import { RazorpayService } from '../services/razorpayClient.js';
+import { emitWebhookEvent } from '../services/socketService.js';
+import { logger } from '../logger.js';
 
 const router = express.Router();
+
+const simulateWebhookSchema = z.object({
+  eventType: z.string().default("payment.failed"),
+  customerName: z.string().optional(),
+  amount: z.number().positive().optional(),
+  bank: z.string().optional(),
+  failureCode: z.string().optional(),
+  merchant: z.string().optional(),
+  planName: z.string().optional()
+});
 
 // GET recent webhook events
 router.get('/events', (req, res) => {
@@ -17,6 +30,7 @@ router.post('/razorpay', async (req, res) => {
   const isSignatureValid = RazorpayService.validateWebhookSignature(bodyString, signature);
 
   if (!isSignatureValid && process.env.AUTH_BYPASS_DEMO === 'false') {
+    logger.warn({ event: 'WEBHOOK_SIGNATURE_INVALID', signature }, 'Invalid Razorpay webhook signature');
     return res.status(400).json({ success: false, error: 'Invalid Razorpay webhook signature (HMAC-SHA256 mismatch)' });
   }
 
@@ -31,6 +45,9 @@ router.post('/razorpay', async (req, res) => {
   };
 
   db.addWebhookEvent(eventRecord);
+  emitWebhookEvent(eventRecord);
+
+  logger.info({ event: 'WEBHOOK_INGESTED', eventType: eventRecord.eventType, id: eventRecord.id }, 'Ingested Razorpay webhook');
 
   // If payment failed event, create or find transaction and trigger recovery agent
   if (event.event === 'payment.failed' || event.event === 'subscription.halted') {
@@ -74,9 +91,18 @@ router.post('/razorpay', async (req, res) => {
   });
 });
 
-// POST simulate custom event injection (from UI or curl)
+// POST simulate custom event injection (from UI or curl) with Zod validation
 router.post('/simulate', async (req, res) => {
-  const { eventType, customerName, amount, bank, failureCode, merchant, planName } = req.body;
+  const parseResult = simulateWebhookSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ 
+      success: false, 
+      error: "Validation Error", 
+      details: parseResult.error.errors.map(e => e.message) 
+    });
+  }
+
+  const { eventType, customerName, amount, bank, failureCode, merchant, planName } = parseResult.data;
 
   const mockPayload = {
     event: eventType || "payment.failed",
@@ -115,6 +141,7 @@ router.post('/simulate', async (req, res) => {
   };
 
   db.addWebhookEvent(eventRecord);
+  emitWebhookEvent(eventRecord);
 
   // Auto-inject and run through agent
   const txn = {

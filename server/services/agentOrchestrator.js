@@ -4,6 +4,7 @@ import { schedulePredictiveRetry } from '../../src/engine/retryScheduler.js';
 import { evaluateBackendPolicy } from './policyEngine.js';
 import { RazorpayService } from './razorpayClient.js';
 import { RazorpayClient } from '../../src/engine/razorpayMockClient.js';
+import { emitTransactionUpdate, emitAuditLog } from './socketService.js';
 
 export async function processSingleTransaction(txn) {
   // Step 1: Diagnosis Agent
@@ -84,6 +85,10 @@ export async function processSingleTransaction(txn) {
     timestamp: new Date().toISOString()
   };
   db.addAuditLog(auditEntry);
+
+  // Emit Real-Time WebSocket Events
+  emitTransactionUpdate(updatedTxn);
+  emitAuditLog(auditEntry);
 
   return { txn: updatedTxn, auditEntry };
 }

@@ -11,14 +11,16 @@ import DisputeShieldView from './components/DisputeShieldView.jsx';
 import WebhookSimulator from './components/WebhookSimulator.jsx';
 import ExecutiveAnalytics from './components/ExecutiveAnalytics.jsx';
 
-import HinglishRecoveryModal from './components/HinglishRecoveryModal.jsx';
-import PolicyConfigModal from './components/PolicyConfigModal.jsx';
-import TransactionDetailView from './components/TransactionDetailView.jsx';
-import DirectCheckoutModal from './components/DirectCheckoutModal.jsx';
-import VoiceCallModal from './components/VoiceCallModal.jsx';
-import SplitPaymentModal from './components/SplitPaymentModal.jsx';
-import AgenticCommerceModal from './components/AgenticCommerceModal.jsx';
-import AuditCertificateModal from './components/AuditCertificateModal.jsx';
+import { Suspense, lazy } from 'react';
+
+const HinglishRecoveryModal = lazy(() => import('./components/HinglishRecoveryModal.jsx'));
+const PolicyConfigModal = lazy(() => import('./components/PolicyConfigModal.jsx'));
+const TransactionDetailView = lazy(() => import('./components/TransactionDetailView.jsx'));
+const DirectCheckoutModal = lazy(() => import('./components/DirectCheckoutModal.jsx'));
+const VoiceCallModal = lazy(() => import('./components/VoiceCallModal.jsx'));
+const SplitPaymentModal = lazy(() => import('./components/SplitPaymentModal.jsx'));
+const AgenticCommerceModal = lazy(() => import('./components/AgenticCommerceModal.jsx'));
+const AuditCertificateModal = lazy(() => import('./components/AuditCertificateModal.jsx'));
 import LiveCliDrawer from './components/LiveCliDrawer.jsx';
 
 import { generateFullBatch } from './data/syntheticBatch.js';
@@ -27,6 +29,9 @@ import { schedulePredictiveRetry } from './engine/retryScheduler.js';
 import { evaluatePolicyGating, DEFAULT_MERCHANT_POLICY } from './engine/policyGating.js';
 import { RazorpayClient } from './engine/razorpayMockClient.js';
 import { ApiService } from './services/api.js';
+import { socket } from './services/socket.js';
+import toast, { Toaster } from 'react-hot-toast';
+import { WifiOff, AlertCircle } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'app'
@@ -34,6 +39,7 @@ export default function App() {
   const [policy, setPolicy] = useState(DEFAULT_MERCHANT_POLICY);
   const [auditLogs, setAuditLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('batch'); // 'batch' | 'ledger' | 'invoices' | 'disputes' | 'webhooks' | 'analytics'
+  const [isOffline, setIsOffline] = useState(false);
   
   // Execution loop states
   const [isRunning, setIsRunning] = useState(false);
@@ -51,7 +57,7 @@ export default function App() {
   const [isCertOpen, setIsCertOpen] = useState(false);
 
   // Sync data with backend on load
-  const syncWithBackend = async () => {
+  const syncWithBackend = async (notify = false) => {
     try {
       const txRes = await ApiService.getTransactions();
       if (txRes && txRes.transactions) setTransactions(txRes.transactions);
@@ -61,13 +67,33 @@ export default function App() {
 
       const audRes = await ApiService.getAuditLogs();
       if (audRes && audRes.auditLogs) setAuditLogs(audRes.auditLogs);
+
+      setIsOffline(false);
+      if (notify) toast.success("Synced live data with SQLite backend");
     } catch (err) {
-      console.log("Local standalone fallback:", err.message);
+      setIsOffline(true);
+      toast.error(`Backend disconnected — running in standalone mode (${err.message})`, { id: 'offline-toast' });
     }
   };
 
   useEffect(() => {
     syncWithBackend();
+
+    const handleNewAudit = (entry) => {
+      setAuditLogs((prev) => [entry, ...prev.filter(l => l.id !== entry.id)]);
+    };
+
+    const handleTxnUpdate = (updatedTxn) => {
+      setTransactions((prev) => prev.map((t) => (t.id === updatedTxn.id ? updatedTxn : t)));
+    };
+
+    socket.on('audit:new', handleNewAudit);
+    socket.on('transaction:updated', handleTxnUpdate);
+
+    return () => {
+      socket.off('audit:new', handleNewAudit);
+      socket.off('transaction:updated', handleTxnUpdate);
+    };
   }, []);
 
   // Process single transaction
@@ -208,6 +234,7 @@ export default function App() {
     } catch (e) {}
     setTransactions(generateFullBatch(3));
     setAuditLogs([]);
+    toast.success("Simulation cohort reset with fresh Indian enterprise subscriptions");
   };
 
   const handleDirectPaymentSuccess = (txnId, amount) => {
@@ -230,6 +257,7 @@ export default function App() {
         return t;
       })
     );
+    toast.success(`Payment of ₹${amount.toLocaleString('en-IN')} captured successfully!`);
   };
 
   // Metrics
@@ -275,6 +303,35 @@ export default function App() {
   // Otherwise render the full Enterprise App & Sentinel Console
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0c2340] flex flex-col selection:bg-[#0066FF] selection:text-white font-sans pb-16">
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            borderRadius: '16px',
+            background: '#0c2340',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: '600',
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)'
+          }
+        }} 
+      />
+
+      {/* Offline Status Warning Banner if backend disconnected */}
+      {isOffline && (
+        <div className="bg-amber-500 text-slate-900 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
+            <WifiOff className="h-4 w-4 shrink-0 animate-bounce" />
+            <span>Backend Server Offline: Operating in local standalone sandbox mode with synthetic simulation.</span>
+            <button 
+              onClick={() => syncWithBackend(true)}
+              className="ml-auto underline hover:text-white transition-colors"
+            >
+              Retry Reconnect
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Top Navbar */}
       <Navbar
@@ -345,76 +402,89 @@ export default function App() {
       {/* Real-time CLI Webhook Stream Drawer */}
       <LiveCliDrawer />
 
-      {/* Modals & Dialogs */}
-      <PolicyConfigModal
-        isOpen={isPolicyOpen}
-        onClose={() => setIsPolicyOpen(false)}
-        policy={policy}
-        onSavePolicy={async (newPolicy) => {
-          setPolicy(newPolicy);
-          try { await ApiService.savePolicy(newPolicy); } catch(e){}
-        }}
-      />
+      {/* Modals & Dialogs (Loaded On-Demand with Suspense) */}
+      <Suspense fallback={null}>
+        {isPolicyOpen && (
+          <PolicyConfigModal
+            isOpen={isPolicyOpen}
+            onClose={() => setIsPolicyOpen(false)}
+            policy={policy}
+            onSavePolicy={async (newPolicy) => {
+              setPolicy(newPolicy);
+              try { 
+                await ApiService.savePolicy(newPolicy); 
+                toast.success("Merchant policy guardrails saved to database");
+              } catch(e){
+                toast.error(`Policy update failed: ${e.message}`);
+              }
+            }}
+          />
+        )}
 
-      <AgenticCommerceModal
-        isOpen={isAgenticOpen}
-        onClose={() => setIsAgenticOpen(false)}
-        onSettlementComplete={syncWithBackend}
-      />
+        {isAgenticOpen && (
+          <AgenticCommerceModal
+            isOpen={isAgenticOpen}
+            onClose={() => setIsAgenticOpen(false)}
+            onSettlementComplete={syncWithBackend}
+          />
+        )}
 
-      <AuditCertificateModal
-        isOpen={isCertOpen}
-        onClose={() => setIsCertOpen(false)}
-      />
+        {isCertOpen && (
+          <AuditCertificateModal
+            isOpen={isCertOpen}
+            onClose={() => setIsCertOpen(false)}
+          />
+        )}
 
-      {activeHinglishTxn && (
-        <HinglishRecoveryModal
-          txn={activeHinglishTxn}
-          onClose={() => setActiveHinglishTxn(null)}
-          onPaymentSuccess={(id, amt) => handleDirectPaymentSuccess(id, amt)}
-        />
-      )}
+        {activeHinglishTxn && (
+          <HinglishRecoveryModal
+            txn={activeHinglishTxn}
+            onClose={() => setActiveHinglishTxn(null)}
+            onPaymentSuccess={(id, amt) => handleDirectPaymentSuccess(id, amt)}
+          />
+        )}
 
-      {activeDetailTxn && (
-        <TransactionDetailView
-          txn={activeDetailTxn}
-          onClose={() => setActiveDetailTxn(null)}
-          onOpenHinglishChat={(txn) => setActiveHinglishTxn(txn)}
-          onDirectTestPay={(txn) => setActiveCheckoutTxn(txn)}
-        />
-      )}
+        {activeDetailTxn && (
+          <TransactionDetailView
+            txn={activeDetailTxn}
+            onClose={() => setActiveDetailTxn(null)}
+            onOpenHinglishChat={(txn) => setActiveHinglishTxn(txn)}
+            onDirectTestPay={(txn) => setActiveCheckoutTxn(txn)}
+          />
+        )}
 
-      {activeCheckoutTxn && (
-        <DirectCheckoutModal
-          txn={activeCheckoutTxn}
-          onClose={() => setActiveCheckoutTxn(null)}
-          onSuccess={(id, amt) => {
-            handleDirectPaymentSuccess(id, amt);
-            setActiveCheckoutTxn(null);
-          }}
-        />
-      )}
+        {activeCheckoutTxn && (
+          <DirectCheckoutModal
+            txn={activeCheckoutTxn}
+            onClose={() => setActiveCheckoutTxn(null)}
+            onSuccess={(id, amt) => {
+              handleDirectPaymentSuccess(id, amt);
+              setActiveCheckoutTxn(null);
+            }}
+          />
+        )}
 
-      {activeVoiceItem && (
-        <VoiceCallModal
-          targetItem={activeVoiceItem}
-          onClose={() => setActiveVoiceItem(null)}
-          onCommitmentAgreed={(id, date) => {
-            setActiveVoiceItem(null);
-            syncWithBackend();
-          }}
-        />
-      )}
+        {activeVoiceItem && (
+          <VoiceCallModal
+            targetItem={activeVoiceItem}
+            onClose={() => setActiveVoiceItem(null)}
+            onCommitmentAgreed={(id, date) => {
+              setActiveVoiceItem(null);
+              syncWithBackend();
+            }}
+          />
+        )}
 
-      {activeSplitTxn && (
-        <SplitPaymentModal
-          txn={activeSplitTxn}
-          onClose={() => setActiveSplitTxn(null)}
-          onSplitSuccess={(id, part1) => {
-            handleDirectPaymentSuccess(id, part1);
-          }}
-        />
-      )}
+        {activeSplitTxn && (
+          <SplitPaymentModal
+            txn={activeSplitTxn}
+            onClose={() => setActiveSplitTxn(null)}
+            onSplitSuccess={(id, part1) => {
+              handleDirectPaymentSuccess(id, part1);
+            }}
+          />
+        )}
+      </Suspense>
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-4 px-4 text-center text-xs text-slate-500">

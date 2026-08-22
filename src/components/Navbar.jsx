@@ -1,12 +1,11 @@
 import React from 'react';
 import { 
-  Zap, Activity, Sliders, RefreshCw, Layers, 
+  Zap, Activity, RefreshCw, Layers, 
   Building2, ShieldCheck, Radio, BarChart3, Globe, 
   Bot, Award 
 } from 'lucide-react';
 
 export default function Navbar({ 
-  onOpenPolicy, 
   onResetBatch, 
   activeTab, 
   setActiveTab, 
@@ -27,7 +26,7 @@ export default function Navbar({
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
       
-      {/* Upper Brand & Global Actions Header */}
+      {/* Brand & Global Actions Header */}
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-3 flex items-center justify-between gap-4 border-b border-slate-100">
         
         {/* Brand */}
@@ -49,13 +48,13 @@ export default function Navbar({
         </div>
 
         {/* Global Action Tools */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={onOpenAgenticModal}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-bold transition-all shadow-sm"
           >
             <Bot className="h-3.5 w-3.5" />
-            <span>Agentic UAP</span>
+            <span>Agentic UAP (Track 01)</span>
           </button>
 
           <button
@@ -72,14 +71,6 @@ export default function Navbar({
           >
             <Globe className="h-3.5 w-3.5" />
             <span>Website</span>
-          </button>
-
-          <button
-            onClick={onOpenPolicy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold transition-all"
-          >
-            <Sliders className="h-3.5 w-3.5 text-[#0066FF]" />
-            <span>Policy</span>
           </button>
 
           <button

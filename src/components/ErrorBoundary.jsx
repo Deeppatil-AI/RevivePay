@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertOctagon, RotateCcw, ChevronDown, ChevronUp, ShieldAlert } from 'lucide-react';
+import { ApiService } from '../services/api.js';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -19,20 +20,14 @@ export default class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo });
 
-    // Send exception report to backend SQLite audit trail
+    // Send exception report to backend SQLite audit trail via centralized ApiService
     try {
-      fetch('http://localhost:5000/api/errors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          viewName: this.props.viewName || 'React View',
-          message: error?.message || String(error),
-          stack: error?.stack || null,
-          componentStack: errorInfo?.componentStack || null,
-          userAgent: navigator.userAgent
-        })
-      }).catch(() => {
-        // Fail silently if backend is offline
+      ApiService.logClientError({
+        viewName: this.props.viewName || 'React View',
+        message: error?.message || String(error),
+        stack: error?.stack || null,
+        componentStack: errorInfo?.componentStack || null,
+        userAgent: navigator.userAgent
       });
     } catch (e) {
       // Ignore network telemetry errors

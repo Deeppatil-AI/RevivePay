@@ -1,5 +1,5 @@
-// Frontend API Client connecting to Express Backend on :5000
-const API_BASE = "http://localhost:5000/api";
+// Frontend API Client connecting to Express Backend
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 export const ApiService = {
   // Health & Metrics
@@ -15,6 +15,19 @@ export const ApiService = {
   getMetrics: async () => {
     const res = await fetch(`${API_BASE}/metrics`);
     return await res.json();
+  },
+
+  logClientError: async (payload) => {
+    try {
+      const res = await fetch(`${API_BASE}/errors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
   },
 
   // Priority 1 & 3: Secure Payment State Machine APIs

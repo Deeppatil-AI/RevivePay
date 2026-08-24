@@ -116,9 +116,15 @@ sqlite.exec(`
 
   CREATE TABLE IF NOT EXISTS webhook_events (
     id TEXT PRIMARY KEY,
+    event_id TEXT,
     event_type TEXT,
     payload TEXT,
-    received_at TEXT,
+    signature_verified INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'RECEIVED', -- RECEIVED, PROCESSING, PROCESSED, FAILED, IGNORED
+    retry_count INTEGER DEFAULT 0,
+    failure_reason TEXT,
+    received_at TEXT NOT NULL,
+    processed_at TEXT,
     merchant_id TEXT DEFAULT 'merchant_rzp_primary'
   );
 
@@ -209,6 +215,33 @@ sqlite.exec(`
     merchant_id TEXT DEFAULT 'merchant_rzp_primary'
   );
 `);
+
+// Run non-destructive column migrations for existing SQLite tables
+try {
+  const columns = sqlite.prepare("PRAGMA table_info(webhook_events)").all().map(c => c.name);
+  if (!columns.includes('status')) sqlite.exec("ALTER TABLE webhook_events ADD COLUMN status TEXT DEFAULT 'RECEIVED'");
+  if (!columns.includes('event_id')) sqlite.exec("ALTER TABLE webhook_events ADD COLUMN event_id TEXT");
+  if (!columns.includes('signature_verified')) sqlite.exec("ALTER TABLE webhook_events ADD COLUMN signature_verified INTEGER DEFAULT 1");
+  if (!columns.includes('retry_count')) sqlite.exec("ALTER TABLE webhook_events ADD COLUMN retry_count INTEGER DEFAULT 0");
+  if (!columns.includes('failure_reason')) sqlite.exec("ALTER TABLE webhook_events ADD COLUMN failure_reason TEXT");
+  if (!columns.includes('processed_at')) sqlite.exec("ALTER TABLE webhook_events ADD COLUMN processed_at TEXT");
+} catch (e) {}
+
+// High-Performance Database Indexes
+try {
+  sqlite.exec(`
+    CREATE INDEX IF NOT EXISTS idx_payments_merchant ON payments(merchant_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+    CREATE INDEX IF NOT EXISTS idx_payments_created ON payments(created_at);
+    CREATE INDEX IF NOT EXISTS idx_payments_idemp ON payments(idempotency_key);
+    CREATE INDEX IF NOT EXISTS idx_ledger_txn ON ledger_entries(transaction_id);
+    CREATE INDEX IF NOT EXISTS idx_ledger_account ON ledger_entries(account_id);
+    CREATE INDEX IF NOT EXISTS idx_refunds_payment ON refunds(payment_id);
+    CREATE INDEX IF NOT EXISTS idx_webhook_status ON webhook_events(status);
+    CREATE INDEX IF NOT EXISTS idx_webhook_event_id ON webhook_events(event_id);
+    CREATE INDEX IF NOT EXISTS idx_idemp_key ON idempotency_records(key);
+  `);
+} catch (e) {}
 
 // Row deserializers
 function rowToSubscription(r) {
@@ -668,9 +701,15 @@ export const db = {
     const rows = sqlite.prepare('SELECT * FROM webhook_events ORDER BY received_at DESC').all();
     return rows.map(r => ({
       id: r.id,
+      eventId: r.event_id,
       eventType: r.event_type,
       payload: r.payload ? JSON.parse(r.payload) : {},
+      signatureVerified: Boolean(r.signature_verified),
+      status: r.status || 'RECEIVED',
+      retryCount: r.retry_count || 0,
+      failureReason: r.failure_reason,
       receivedAt: r.received_at,
+      processedAt: r.processed_at,
       merchantId: r.merchant_id
     }));
   },
@@ -678,18 +717,79 @@ export const db = {
     sqlite.prepare('DELETE FROM webhook_events').run();
   },
 
+  getWebhookEventById(id) {
+    const r = sqlite.prepare('SELECT * FROM webhook_events WHERE id = ?').get(id);
+    if (!r) return null;
+    return {
+      id: r.id,
+      eventId: r.event_id,
+      eventType: r.event_type,
+      payload: r.payload ? JSON.parse(r.payload) : {},
+      signatureVerified: Boolean(r.signature_verified),
+      status: r.status || 'RECEIVED',
+      retryCount: r.retry_count || 0,
+      failureReason: r.failure_reason,
+      receivedAt: r.received_at,
+      processedAt: r.processed_at,
+      merchantId: r.merchant_id
+    };
+  },
+
+  getWebhookEventByEventId(eventId) {
+    if (!eventId) return null;
+    const r = sqlite.prepare('SELECT * FROM webhook_events WHERE event_id = ?').get(eventId);
+    if (!r) return null;
+    return {
+      id: r.id,
+      eventId: r.event_id,
+      eventType: r.event_type,
+      payload: r.payload ? JSON.parse(r.payload) : {},
+      signatureVerified: Boolean(r.signature_verified),
+      status: r.status || 'RECEIVED',
+      retryCount: r.retry_count || 0,
+      failureReason: r.failure_reason,
+      receivedAt: r.received_at,
+      processedAt: r.processed_at,
+      merchantId: r.merchant_id
+    };
+  },
+
   addWebhookEvent(event) {
     const stmt = sqlite.prepare(`
-      INSERT INTO webhook_events (id, event_type, payload, received_at, merchant_id)
-      VALUES (@id, @event_type, @payload, @received_at, @merchant_id)
+      INSERT INTO webhook_events (id, event_id, event_type, payload, signature_verified, status, retry_count, failure_reason, received_at, processed_at, merchant_id)
+      VALUES (@id, @event_id, @event_type, @payload, @signature_verified, @status, @retry_count, @failure_reason, @received_at, @processed_at, @merchant_id)
     `);
     stmt.run({
-      id: event.id || `evt_${Date.now().toString(36)}`,
+      id: event.id || `evt_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+      event_id: event.eventId || event.event_id || null,
       event_type: event.eventType || event.event_type,
       payload: JSON.stringify(event.payload || {}),
+      signature_verified: (event.signatureVerified !== undefined ? event.signatureVerified : event.signature_verified) ? 1 : 0,
+      status: event.status || 'RECEIVED',
+      retry_count: event.retryCount || event.retry_count || 0,
+      failure_reason: event.failureReason || event.failure_reason || null,
       received_at: event.receivedAt || event.received_at || new Date().toISOString(),
+      processed_at: event.processedAt || event.processed_at || null,
       merchant_id: event.merchantId || event.merchant_id || 'merchant_rzp_primary'
     });
+    return this.getWebhookEventById(event.id);
+  },
+
+  updateWebhookEventStatus(id, { status, failureReason = null, processedAt = new Date().toISOString() }) {
+    const stmt = sqlite.prepare(`
+      UPDATE webhook_events SET
+        status = @status,
+        failure_reason = @failure_reason,
+        processed_at = @processed_at
+      WHERE id = @id
+    `);
+    stmt.run({
+      id,
+      status,
+      failure_reason: failureReason,
+      processed_at: processedAt
+    });
+    return this.getWebhookEventById(id);
   },
 
   // --- Priority 1 & 3: Payments Store ---

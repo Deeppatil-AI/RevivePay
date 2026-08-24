@@ -31,6 +31,10 @@ import refundRoutes from './routes/refundRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import errorRoutes from './routes/errorRoutes.js';
 
+import { correlationMiddleware } from './middleware/correlationMiddleware.js';
+import { backgroundQueue } from './services/backgroundQueue.js';
+import { db } from './database/store.js';
+
 const app = express();
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
@@ -53,6 +57,7 @@ app.use(
 // Global Middleware
 app.use(cors());
 app.use(express.json());
+app.use(correlationMiddleware);
 
 // Metrics & Latency Tracking Middleware
 const metrics = {
@@ -105,13 +110,26 @@ app.get('/api/metrics', (req, res) => {
     ? Math.round(metrics.totalLatencyMs / metrics.requestCount) 
     : 0;
 
+  const payments = db.payments || [];
+  const successfulCount = payments.filter(p => p.status === 'SUCCESS' || p.status === 'REFUNDED').length;
+  const failedCount = payments.filter(p => p.status === 'FAILED').length;
+  const blockedFraudCount = payments.filter(p => p.fraudDecision === 'BLOCK').length;
+
   res.json({
     requestCount: metrics.requestCount,
     errorCount: metrics.errorCount,
     avgLatencyMs,
     uptimeSeconds: Math.floor(process.uptime()),
     systemMemoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-    startedAt: metrics.startedAt
+    startedAt: metrics.startedAt,
+    telemetry: {
+      totalPayments: payments.length,
+      successfulPayments: successfulCount,
+      failedPayments: failedCount,
+      blockedFraudPayments: blockedFraudCount,
+      recentBackgroundJobs: backgroundQueue.listRecentJobs(5).length,
+      ledgerEntriesTotal: (db.ledgerEntries || []).length
+    }
   });
 });
 

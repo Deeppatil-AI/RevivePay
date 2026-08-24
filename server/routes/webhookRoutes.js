@@ -23,7 +23,7 @@ router.get('/events', (req, res) => {
   res.json({ success: true, count: db.webhookEvents.length, events: db.webhookEvents });
 });
 
-// POST real Razorpay webhook listener with signature verification
+// POST real Razorpay webhook listener with signature verification & deduplication
 router.post('/razorpay', async (req, res) => {
   const signature = req.headers['x-razorpay-signature'];
   const bodyString = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
@@ -35,60 +35,86 @@ router.post('/razorpay', async (req, res) => {
   }
 
   const event = req.body;
-  const eventRecord = {
-    id: `whevt_${Math.random().toString(36).substring(2, 9)}`,
+  const externalEventId = event.id || event.payload?.payment?.entity?.id || req.headers['x-razorpay-event-id'];
+
+  // Priority 4: Replay Protection & Deduplication
+  if (externalEventId) {
+    const existingEvent = db.getWebhookEventByEventId(externalEventId);
+    if (existingEvent && (existingEvent.status === 'PROCESSED' || existingEvent.status === 'PROCESSING')) {
+      logger.info({ event: 'WEBHOOK_DUPLICATE_IGNORED', eventId: externalEventId }, 'Duplicate webhook event received; safely returning idempotent response');
+      return res.status(200).json({
+        success: true,
+        message: 'Duplicate webhook event ignored (already processed)',
+        duplicate: true,
+        eventId: existingEvent.id,
+        status: existingEvent.status
+      });
+    }
+  }
+
+  const internalEventId = `whevt_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+  const eventRecord = db.addWebhookEvent({
+    id: internalEventId,
+    eventId: externalEventId,
     eventType: event.event || 'payment.failed',
     payload: event,
     signatureVerified: isSignatureValid,
-    receivedAt: new Date().toISOString(),
-    status: isSignatureValid ? "PROCESSED" : "PROCESSED_DEMO_BYPASS"
-  };
-
-  db.addWebhookEvent(eventRecord);
-  emitWebhookEvent(eventRecord);
-
-  logger.info({ event: 'WEBHOOK_INGESTED', eventType: eventRecord.eventType, id: eventRecord.id }, 'Ingested Razorpay webhook');
-
-  // If payment failed event, create or find transaction and trigger recovery agent
-  if (event.event === 'payment.failed' || event.event === 'subscription.halted') {
-    const payloadEntity = event.payload?.payment?.entity || {};
-    const txn = {
-      id: payloadEntity.id || `txn_wh_${Date.now()}`,
-      mandateId: payloadEntity.notes?.mandate_id || `man_wh_${Date.now()}`,
-      rrn: payloadEntity.acquirer_data?.rrn || `33819${Math.floor(100000 + Math.random() * 900000)}`,
-      customerName: payloadEntity.notes?.customerName || "Customer (Webhook Triggered)",
-      phone: payloadEntity.contact || "+91 98200 99881",
-      email: payloadEntity.email || "webhook.customer@domain.in",
-      city: "Bengaluru",
-      merchant: payloadEntity.notes?.merchant || "Razorpay Live Merchant",
-      category: "OTT",
-      merchantCategory: "OTT",
-      planName: payloadEntity.description || "Recurring AutoPay Plan",
-      amount: Math.round((payloadEntity.amount || 149900) / 100),
-      bank: payloadEntity.bank || "SBI",
-      ifsc: `${payloadEntity.bank || 'SBIN'}0001234`,
-      customerLtv: 12000,
-      mandateLimit: 15000,
-      retryCount: 1,
-      failureCode: payloadEntity.error_code || "NPCI_U30",
-      failureName: "Bank CBS Outage",
-      failureCategory: "INFRASTRUCTURE",
-      failureReason: payloadEntity.error_description || "Webhook triggered simulated failure event.",
-      failedAt: new Date().toISOString(),
-      recoveryResult: null
-    };
-
-    const existing = db.subscriptions;
-    db.subscriptions = [txn, ...existing.filter(s => s.id !== txn.id)];
-    await processSingleTransaction(txn);
-  }
-
-  res.json({ 
-    success: true, 
-    message: "Webhook processed with Razorpay signature verification and dispatched to Sentinel Agent", 
-    eventId: eventRecord.id,
-    signatureVerified: isSignatureValid
+    status: 'PROCESSING',
+    receivedAt: new Date().toISOString()
   });
+
+  emitWebhookEvent(eventRecord);
+  logger.info({ event: 'WEBHOOK_INGESTED', eventType: eventRecord.eventType, id: eventRecord.id }, 'Ingested Razorpay webhook in PROCESSING state');
+
+  try {
+    // If payment failed event, create or find transaction and trigger recovery agent
+    if (event.event === 'payment.failed' || event.event === 'subscription.halted') {
+      const payloadEntity = event.payload?.payment?.entity || {};
+      const txn = {
+        id: payloadEntity.id || `txn_wh_${Date.now()}`,
+        mandateId: payloadEntity.notes?.mandate_id || `man_wh_${Date.now()}`,
+        rrn: payloadEntity.acquirer_data?.rrn || `33819${Math.floor(100000 + Math.random() * 900000)}`,
+        customerName: payloadEntity.notes?.customerName || "Customer (Webhook Triggered)",
+        phone: payloadEntity.contact || "+91 98200 99881",
+        email: payloadEntity.email || "webhook.customer@domain.in",
+        city: "Bengaluru",
+        merchant: payloadEntity.notes?.merchant || "Razorpay Live Merchant",
+        category: "OTT",
+        merchantCategory: "OTT",
+        planName: payloadEntity.description || "Recurring AutoPay Plan",
+        amount: Math.round((payloadEntity.amount || 149900) / 100),
+        bank: payloadEntity.bank || "SBI",
+        ifsc: `${payloadEntity.bank || 'SBIN'}0001234`,
+        customerLtv: 12000,
+        mandateLimit: 15000,
+        retryCount: 1,
+        failureCode: payloadEntity.error_code || "NPCI_U30",
+        failureName: "Bank CBS Outage",
+        failureCategory: "INFRASTRUCTURE",
+        failureReason: payloadEntity.error_description || "Webhook triggered simulated failure event.",
+        failedAt: new Date().toISOString(),
+        recoveryResult: null
+      };
+
+      const existing = db.subscriptions;
+      db.subscriptions = [txn, ...existing.filter(s => s.id !== txn.id)];
+      await processSingleTransaction(txn);
+    }
+
+    db.updateWebhookEventStatus(internalEventId, { status: 'PROCESSED' });
+
+    res.json({ 
+      success: true, 
+      message: "Webhook processed with Razorpay signature verification and dispatched to Sentinel Agent", 
+      eventId: internalEventId,
+      status: "PROCESSED",
+      signatureVerified: isSignatureValid
+    });
+  } catch (err) {
+    db.updateWebhookEventStatus(internalEventId, { status: 'FAILED', failureReason: err.message });
+    logger.error({ err: err.message, eventId: internalEventId }, 'Webhook processing failed');
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // POST simulate custom event injection (from UI or curl) with Zod validation

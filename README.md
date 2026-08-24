@@ -18,15 +18,16 @@
 
 ---
 
-## 🌐 Live Demo & Endpoints
+## 🌐 Live Production Deployment & Endpoints
 
-- **Live Application Dashboard**: [http://localhost:5173](http://localhost:5173) (or production container `:5000`)
-- **Backend REST API Health**: `http://localhost:5000/api/health`
-- **Observability & Telemetry Metrics**: `http://localhost:5000/api/metrics`
-- **Transaction Analytics**: `http://localhost:5000/api/analytics/transactions`
-- **Fraud Risk Intelligence**: `http://localhost:5000/api/analytics/fraud`
-- **Double-Entry Ledger Integrity**: `http://localhost:5000/api/analytics/ledger`
-- **GitHub Repository**: [https://github.com/Deeppatil-AI/RevivePay](https://github.com/Deeppatil-AI/RevivePay)
+[![Live Production Demo](https://img.shields.io/badge/Live%20Production%20Demo-Render.com-0066FF?style=for-the-badge&logo=render&logoColor=white)](https://revivepay-9v36.onrender.com/)
+
+- 🚀 **Live Production Application**: [https://revivepay-9v36.onrender.com/](https://revivepay-9v36.onrender.com/)
+- 🩺 **Backend REST API Health**: [https://revivepay-9v36.onrender.com/api/health](https://revivepay-9v36.onrender.com/api/health)
+- 📊 **Live Telemetry & Metrics**: [https://revivepay-9v36.onrender.com/api/metrics](https://revivepay-9v36.onrender.com/api/metrics)
+- ⚖️ **Double-Entry Ledger Integrity**: [https://revivepay-9v36.onrender.com/api/analytics/ledger](https://revivepay-9v36.onrender.com/api/analytics/ledger)
+- 💻 **Local Development**: `http://localhost:5173` (Vite) / `http://localhost:5000` (Node)
+- 🐙 **GitHub Repository**: [https://github.com/Deeppatil-AI/RevivePay](https://github.com/Deeppatil-AI/RevivePay)
 
 ---
 

@@ -5,10 +5,8 @@ import {
   Layers, Building2, TrendingUp, Star, 
   Smartphone, QrCode, Sliders, Sparkles, BarChart3, Lock 
 } from 'lucide-react';
-import LoginModal from './LoginModal.jsx';
 
-export default function LandingPage({ onLaunchConsole, onOpenTour }) {
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+export default function LandingPage({ onLaunchConsole }) {
   // Rotating hero headline
   const heroHeadlines = [
     "Stop losing 35% recurring revenue to bank downtime & payment failures.",
@@ -208,7 +206,7 @@ echo $recovery->action; // HINGLISH_ONECLICK_WHATSAPP`
           {/* Action buttons */}
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => setIsLoginOpen(true)}
+              onClick={() => onLaunchConsole('batch')}
               className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-[#0066FF] hidden sm:flex items-center gap-1 transition-colors"
             >
               <Lock className="h-3 w-3 text-slate-400" />
@@ -248,20 +246,19 @@ echo $recovery->action; // HINGLISH_ONECLICK_WHATSAPP`
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
               <button
-                onClick={onLaunchConsole}
+                onClick={() => onLaunchConsole('batch')}
                 className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-[#0066FF] hover:bg-[#0052cc] text-white text-sm font-bold shadow-md hover:shadow-xl flex items-center justify-center gap-2 transition-all"
               >
                 <span>Launch Live Sentinel Demo</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
 
-              <button
-                onClick={onOpenTour}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-[#0066FF] text-sm font-bold border border-blue-200 shadow-sm flex items-center justify-center gap-2 transition-all"
+              <a
+                href="#features"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold border border-slate-300 shadow-sm flex items-center justify-center gap-2 transition-all"
               >
-                <Sparkles className="h-4 w-4 text-[#0066FF]" />
-                <span>60s Pitch Tour</span>
-              </button>
+                <span>Explore Features</span>
+              </a>
             </div>
 
             {/* Quick Proof Badges */}
@@ -837,12 +834,6 @@ echo $recovery->action; // HINGLISH_ONECLICK_WHATSAPP`
           <span className="font-mono text-slate-500">Designed for Razorpay AI Hackathon • Tracks 01, 02, 03 & 04</span>
         </div>
       </footer>
-
-      <LoginModal
-        isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onLoginSuccess={() => onLaunchConsole('batch')}
-      />
 
     </div>
   );

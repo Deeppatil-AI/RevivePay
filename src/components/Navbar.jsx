@@ -13,8 +13,7 @@ export default function Navbar({
   stats, 
   onGoToLanding,
   onOpenAgenticModal,
-  onOpenCertModal,
-  onOpenTour
+  onOpenCertModal
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
@@ -54,14 +53,6 @@ export default function Navbar({
 
         {/* Desktop Global Action Tools (Visible on md and up) */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
-          <button
-            onClick={onOpenTour}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#0052cc] to-[#0066FF] hover:from-[#0047b3] hover:to-[#0052cc] text-white text-xs font-black transition-all shadow-md animate-pulse"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-            <span>60s Pitch Tour</span>
-          </button>
-
           <button
             onClick={onOpenAgenticModal}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all shadow-sm"

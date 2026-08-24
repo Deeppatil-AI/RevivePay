@@ -4,6 +4,8 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
+    "start": "node server/index.js",
+    "start:prod": "npm run build && node server/index.js",
     "dev": "vite",
     "server": "node server/index.js",
     "seed": "node server/database/seed.js",

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, Bot, ArrowRight, CheckCircle2, ShieldCheck, 
   Sparkles, KeyRound, Cpu, DollarSign, Activity 
@@ -8,6 +8,14 @@ import confetti from 'canvas-confetti';
 
 export default function AgenticCommerceModal({ isOpen, onClose, onSettlementComplete }) {
   if (!isOpen) return null;
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const [buyerAgentId, setBuyerAgentId] = useState("agent_acme_procure_991");
   const [requestedSeats, setRequestedSeats] = useState(25);
@@ -40,7 +48,12 @@ export default function AgenticCommerceModal({ isOpen, onClose, onSettlementComp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="agentic-modal-title"
+    >
       <div className="bg-white rounded-3xl p-6 border border-slate-200 w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
@@ -51,7 +64,7 @@ export default function AgenticCommerceModal({ isOpen, onClose, onSettlementComp
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-base text-[#0c2340]">
+                <h3 id="agentic-modal-title" className="font-extrabold text-base text-[#0c2340]">
                   Track 01: Agentic Commerce Protocol (UAP / x402)
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-blue-50 text-[#0066FF] text-[10px] font-mono font-bold border border-blue-200">
@@ -64,7 +77,11 @@ export default function AgenticCommerceModal({ isOpen, onClose, onSettlementComp
             </div>
           </div>
 
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+          <button 
+            onClick={onClose} 
+            aria-label="Close Agentic Commerce Modal"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>

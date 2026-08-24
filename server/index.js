@@ -29,6 +29,7 @@ import reportRoutes from './routes/reportRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import refundRoutes from './routes/refundRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import errorRoutes from './routes/errorRoutes.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -124,6 +125,7 @@ app.use('/api', authMiddleware);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/refunds', refundRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/errors', errorRoutes);
 app.use('/api/recovery', recoveryRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/invoices', invoiceRoutes);

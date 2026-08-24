@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   X, ArrowRight 
 } from 'lucide-react';
@@ -6,11 +6,24 @@ import {
 export default function TransactionDetailView({ txn, onClose, onOpenHinglishChat, onDirectTestPay }) {
   if (!txn) return null;
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const res = txn.recoveryResult;
   const isRecovered = res && res.status === "RECOVERED";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/75 backdrop-blur-sm animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/75 backdrop-blur-sm animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="txn-detail-title"
+    >
       <div className="bg-white dark:bg-[#0b1b36] border border-slate-200 dark:border-[#1d406d] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] transition-colors">
         
         {/* Header */}
@@ -21,7 +34,7 @@ export default function TransactionDetailView({ txn, onClose, onOpenHinglishChat
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-[#0c2340] dark:text-white text-base">{txn.customerName}</span>
+                <span id="txn-detail-title" className="font-bold text-[#0c2340] dark:text-white text-base">{txn.customerName}</span>
                 <span className="text-xs text-slate-500 dark:text-[#8ba3c7] font-mono">({txn.id})</span>
               </div>
               <p className="text-xs text-slate-500 dark:text-[#8ba3c7]">
@@ -32,7 +45,8 @@ export default function TransactionDetailView({ txn, onClose, onOpenHinglishChat
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-100 dark:bg-[#0f223d] border border-slate-200 dark:border-[#1e3a5f] text-slate-500 dark:text-[#8ba3c7] hover:text-slate-900 dark:hover:text-white"
+            aria-label="Close Transaction Details"
+            className="p-1.5 rounded-lg bg-slate-100 dark:bg-[#0f223d] border border-slate-200 dark:border-[#1e3a5f] text-slate-500 dark:text-[#8ba3c7] hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <X className="h-4 w-4" />
           </button>

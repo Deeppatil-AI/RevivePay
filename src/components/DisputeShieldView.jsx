@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, FileCheck, AlertOctagon, CheckCircle2, 
-  MapPin, Smartphone, Truck, Download, Sparkles 
+  MapPin, Smartphone, Truck, Download, Sparkles, X, FileText 
 } from 'lucide-react';
 import { ApiService } from '../services/api.js';
+import { exportDisputeDossierPdf } from '../utils/pdfExport.js';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 
@@ -148,7 +149,17 @@ export default function DisputeShieldView() {
 
                 <div className="flex items-center gap-1.5">
                   <button
+                    onClick={() => exportDisputeDossierPdf(d)}
+                    aria-label={`Export PDF Dossier for dispute ${d.id}`}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1 shadow-sm transition-all"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span>PDF</span>
+                  </button>
+
+                  <button
                     onClick={() => setActiveDossier(d)}
+                    aria-label={`View evidentiary dossier for dispute ${d.id}`}
                     className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200"
                   >
                     View Dossier
@@ -158,6 +169,7 @@ export default function DisputeShieldView() {
                     <button
                       onClick={() => handleSubmitDossier(d.id)}
                       disabled={submittingId === d.id}
+                      aria-label={`Submit legal dossier to network for dispute ${d.id}`}
                       className="px-3 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1"
                     >
                       <FileCheck className="h-3.5 w-3.5" />
@@ -173,19 +185,35 @@ export default function DisputeShieldView() {
 
       {/* Dossier Preview Modal */}
       {activeDossier && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dispute-modal-title"
+        >
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl">
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-[#0066FF]" />
-                <h4 className="font-bold text-[#0c2340] text-sm">Visa/Mastercard Evidence Dossier ({activeDossier.paymentId})</h4>
+                <h4 id="dispute-modal-title" className="font-bold text-[#0c2340] text-sm">Visa/Mastercard Evidence Dossier ({activeDossier.paymentId})</h4>
               </div>
-              <button
-                onClick={() => setActiveDossier(null)}
-                className="text-xs text-slate-500 hover:text-slate-900"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => exportDisputeDossierPdf(activeDossier)}
+                  aria-label="Export Dossier as PDF"
+                  className="px-2.5 py-1 rounded-lg bg-[#0066FF] hover:bg-[#0052cc] text-white text-xs font-bold flex items-center gap-1 shadow-sm transition-all"
+                >
+                  <Download className="h-3 w-3" />
+                  <span>Export PDF</span>
+                </button>
+                <button
+                  onClick={() => setActiveDossier(null)}
+                  aria-label="Close Dossier Modal"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-900"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 space-y-3 text-xs">
@@ -208,7 +236,14 @@ export default function DisputeShieldView() {
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+              <button
+                onClick={() => exportDisputeDossierPdf(activeDossier)}
+                className="px-4 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>Download PDF Dossier</span>
+              </button>
               <button
                 onClick={() => setActiveDossier(null)}
                 className="px-4 py-1.5 rounded-xl bg-[#0066FF] text-white text-xs font-bold"

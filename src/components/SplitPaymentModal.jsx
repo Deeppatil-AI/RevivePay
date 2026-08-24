@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Layers, CheckCircle2, ArrowRight, ShieldCheck, Sparkles, CreditCard } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function SplitPaymentModal({ txn, onClose, onSplitSuccess }) {
   if (!txn) return null;
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const [splitDone, setSplitDone] = useState(false);
   const totalAmount = txn.amount;
@@ -19,7 +27,12 @@ export default function SplitPaymentModal({ txn, onClose, onSplitSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="split-modal-title"
+    >
       <div className="bg-white rounded-3xl p-6 border border-slate-200 w-full max-w-md shadow-2xl">
         
         {/* Header */}
@@ -29,12 +42,16 @@ export default function SplitPaymentModal({ txn, onClose, onSplitSuccess }) {
               <Layers className="h-4 w-4" />
             </div>
             <div>
-              <div className="font-bold text-sm text-[#0c2340]">Dynamic Liquidity & Smart Split</div>
+              <div id="split-modal-title" className="font-bold text-sm text-[#0c2340]">Dynamic Liquidity & Smart Split</div>
               <div className="text-[10px] text-slate-500 font-mono">Instant 2-Part Milestone / 0% EMI</div>
             </div>
           </div>
 
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+          <button 
+            onClick={onClose} 
+            aria-label="Close Smart Split Modal"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>

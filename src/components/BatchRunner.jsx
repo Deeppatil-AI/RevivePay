@@ -147,10 +147,11 @@ export default function BatchRunner({
             <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
+              aria-label="Search transactions by customer, merchant, or bank"
               placeholder="Search customer, merchant, bank..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#0c2340] placeholder-slate-400 focus:outline-none focus:border-[#0066FF]"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-300 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0066FF] shadow-xs"
             />
           </div>
 
@@ -325,6 +326,7 @@ export default function BatchRunner({
                           <div className="flex items-center gap-1 mt-0.5">
                             <button
                               onClick={() => onOpenHinglishChat(txn)}
+                              aria-label={`Open WhatsApp recovery outreach for ${txn.customerName}`}
                               className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0066FF] border border-slate-200 text-[10px] font-bold flex items-center gap-1 transition-all"
                             >
                               <MessageSquare className="h-3 w-3" />
@@ -333,6 +335,7 @@ export default function BatchRunner({
 
                             <button
                               onClick={() => onOpenTransactionDetails(txn)}
+                              aria-label={`View transaction details for ${txn.id}`}
                               className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[10px] font-bold flex items-center gap-1 transition-all"
                             >
                               <ArrowUpRight className="h-3 w-3" />
@@ -342,6 +345,7 @@ export default function BatchRunner({
                             {!isRecovered && (
                               <button
                                 onClick={() => onDirectTestPay(txn)}
+                                aria-label={`Execute test payment for ${txn.customerName}`}
                                 className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] font-bold transition-all"
                               >
                                 Test Pay

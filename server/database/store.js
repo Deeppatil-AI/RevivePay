@@ -196,6 +196,18 @@ sqlite.exec(`
     metadata TEXT,
     timestamp TEXT NOT NULL
   );
+
+  -- React Error Boundary and Client Exception Audit Trail
+  CREATE TABLE IF NOT EXISTS error_logs (
+    id TEXT PRIMARY KEY,
+    view_name TEXT,
+    message TEXT NOT NULL,
+    stack TEXT,
+    component_stack TEXT,
+    user_agent TEXT,
+    timestamp TEXT NOT NULL,
+    merchant_id TEXT DEFAULT 'merchant_rzp_primary'
+  );
 `);
 
 // Row deserializers
@@ -911,6 +923,28 @@ export const db = {
       new_state: evt.newState || evt.new_state || null,
       metadata: JSON.stringify(evt.metadata || {}),
       timestamp: evt.timestamp || new Date().toISOString()
+    });
+  },
+
+  // --- React Error Boundary Logs ---
+  get errorLogs() {
+    return sqlite.prepare('SELECT * FROM error_logs ORDER BY timestamp DESC').all();
+  },
+
+  addErrorLog(entry) {
+    const stmt = sqlite.prepare(`
+      INSERT INTO error_logs (id, view_name, message, stack, component_stack, user_agent, timestamp, merchant_id)
+      VALUES (@id, @view_name, @message, @stack, @component_stack, @user_agent, @timestamp, @merchant_id)
+    `);
+    stmt.run({
+      id: entry.id || `err_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+      view_name: entry.viewName || entry.view_name || 'unknown_view',
+      message: entry.message || 'Unknown React error',
+      stack: entry.stack || null,
+      component_stack: entry.componentStack || entry.component_stack || null,
+      user_agent: entry.userAgent || entry.user_agent || null,
+      timestamp: entry.timestamp || new Date().toISOString(),
+      merchant_id: entry.merchantId || entry.merchant_id || 'merchant_rzp_primary'
     });
   }
 };

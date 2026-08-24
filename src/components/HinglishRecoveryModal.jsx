@@ -116,8 +116,21 @@ export default function HinglishRecoveryModal({ txn, onClose, onPaymentSuccess }
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="recovery-modal-title"
+    >
       <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         
         {/* Header */}
@@ -128,7 +141,7 @@ export default function HinglishRecoveryModal({ txn, onClose, onPaymentSuccess }
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-[#0c2340] text-sm">{txn.merchant} Auto-Recover</span>
+                <span id="recovery-modal-title" className="font-bold text-[#0c2340] text-sm">{txn.merchant} Auto-Recover</span>
                 <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-mono border border-emerald-200 font-bold">
                   Verified Agent
                 </span>
@@ -142,6 +155,7 @@ export default function HinglishRecoveryModal({ txn, onClose, onPaymentSuccess }
           <div className="flex items-center gap-2">
             <button
               onClick={handleSpeak}
+              aria-label="Listen to Vernacular Speech"
               title="Listen to Vernacular Speech"
               className={`p-2 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 transition-all ${
                 isSpeaking ? 'bg-[#0066FF] text-white animate-pulse' : 'bg-white'

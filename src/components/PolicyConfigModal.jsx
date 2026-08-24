@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Save, CheckCircle2, RotateCcw, AlertTriangle } from 'lucide-react';
 import { DEFAULT_MERCHANT_POLICY } from '../engine/policyGating.js';
 
 export default function PolicyConfigModal({ isOpen, onClose, policy, onSavePolicy }) {
   if (!isOpen) return null;
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const safePolicy = policy || DEFAULT_MERCHANT_POLICY;
   const [form, setForm] = useState({
@@ -39,7 +47,12 @@ export default function PolicyConfigModal({ isOpen, onClose, policy, onSavePolic
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="policy-modal-title"
+    >
       <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
         
         {/* Modal Header */}
@@ -49,7 +62,7 @@ export default function PolicyConfigModal({ isOpen, onClose, policy, onSavePolic
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-bold text-[#0c2340] text-base">Policy & Guardrails Governance</h3>
+              <h3 id="policy-modal-title" className="font-bold text-[#0c2340] text-base">Policy & Guardrails Governance</h3>
               <p className="text-xs text-slate-500">
                 Define safety limits and financial bounds for autonomous recovery
               </p>
@@ -58,9 +71,10 @@ export default function PolicyConfigModal({ isOpen, onClose, policy, onSavePolic
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-900"
+            aria-label="Close Policy Modal"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 

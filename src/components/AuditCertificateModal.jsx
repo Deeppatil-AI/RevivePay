@@ -4,6 +4,7 @@ import {
   Award, QrCode, Lock, FileText 
 } from 'lucide-react';
 import { ApiService } from '../services/api.js';
+import { exportAuditCertificatePdf } from '../utils/pdfExport.js';
 
 export default function AuditCertificateModal({ isOpen, onClose }) {
   if (!isOpen) return null;
@@ -26,26 +27,47 @@ export default function AuditCertificateModal({ isOpen, onClose }) {
     window.print();
   };
 
+  const handleExportPdf = () => {
+    if (cert) {
+      exportAuditCertificatePdf(cert);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="cert-modal-title">
       <div className="bg-white rounded-3xl border border-slate-300 w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         
         {/* Modal Top Bar */}
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Award className="h-5 w-5 text-[#0066FF]" />
-            <span className="font-bold text-sm text-[#0c2340]">Official Statutory Audit Dossier</span>
+            <span id="cert-modal-title" className="font-bold text-sm text-[#0c2340]">Official Statutory Audit Dossier</span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
+              onClick={handleExportPdf}
+              aria-label="Export Certificate as PDF"
+              className="px-3 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-xs font-bold text-white flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Export as PDF</span>
+            </button>
+
+            <button
               onClick={handlePrint}
+              aria-label="Print Certificate"
               className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm"
             >
               <Printer className="h-3.5 w-3.5" />
-              <span>Print Certificate</span>
+              <span>Print</span>
             </button>
-            <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+
+            <button 
+              onClick={onClose} 
+              aria-label="Close Certificate Modal"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            >
               <X className="h-5 w-5" />
             </button>
           </div>

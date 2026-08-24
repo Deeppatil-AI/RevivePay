@@ -79,6 +79,7 @@ export default function Navbar({
 
           <button
             onClick={toggleTheme}
+            aria-label={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
             title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 transition-all"
           >
@@ -87,6 +88,7 @@ export default function Navbar({
 
           <button
             onClick={onResetBatch}
+            aria-label="Reset Simulation Data"
             title="Reset Simulation Data"
             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 transition-all"
           >
@@ -179,6 +181,7 @@ export default function Navbar({
             <div className="grid grid-cols-2 gap-1.5">
               <button
                 onClick={toggleTheme}
+                aria-label={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
                 className="py-2.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1 shadow-sm"
               >
                 {isDark ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5" />}
@@ -187,6 +190,7 @@ export default function Navbar({
 
               <button
                 onClick={() => { onResetBatch(); setMobileMenuOpen(false); }}
+                aria-label="Reset Simulation Data"
                 className="py-2.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1 shadow-sm"
               >
                 <RefreshCw className="h-3.5 w-3.5" />

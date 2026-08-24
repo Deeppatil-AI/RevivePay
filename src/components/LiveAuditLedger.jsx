@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { 
   Activity, ShieldCheck, ShieldAlert, AlertTriangle, 
-  CheckCircle2, Terminal, Copy, Check 
+  CheckCircle2, Terminal, Copy, Check, Download 
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function LiveAuditLedger({ auditLogs }) {
   const [copiedId, setCopiedId] = useState(null);
@@ -14,13 +15,51 @@ export default function LiveAuditLedger({ auditLogs }) {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const filteredLogs = auditLogs.filter(log => {
+  const filteredLogs = (auditLogs || []).filter(log => {
     if (filterType === "ALL") return true;
     if (filterType === "APPROVED") return log.policyStatus === "APPROVED";
     if (filterType === "ESCALATED") return log.policyStatus === "ESCALATED";
     if (filterType === "STOPPED") return log.policyStatus === "BLOCKED";
     return true;
   });
+
+  const handleDownloadCsv = () => {
+    if (!filteredLogs.length) {
+      toast.error('No ledger records available to export.');
+      return;
+    }
+
+    try {
+      const headers = ['Timestamp', 'Txn ID', 'Customer Name', 'Merchant', 'Diagnosis Category', 'Policy Status', 'Action Type', 'Action Detail', 'Audit Token'];
+      const rows = filteredLogs.map(l => [
+        `"${new Date(l.timestamp).toISOString()}"`,
+        `"${l.txnId || ''}"`,
+        `"${(l.customerName || '').replace(/"/g, '""')}"`,
+        `"${(l.merchant || '').replace(/"/g, '""')}"`,
+        `"${(l.diagnosis?.rootCauseCategory || '').replace(/"/g, '""')}"`,
+        `"${l.policyStatus || ''}"`,
+        `"${l.actionType || ''}"`,
+        `"${(l.actionDetail || '').replace(/"/g, '""')}"`,
+        `"${l.auditToken || ''}"`
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      const filename = `revivepay_audit_ledger_${Date.now()}.csv`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${filteredLogs.length} ledger rows to ${filename}`);
+    } catch (err) {
+      toast.error(`CSV export failed: ${err.message}`);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 pb-12">
@@ -40,21 +79,34 @@ export default function LiveAuditLedger({ auditLogs }) {
             </p>
           </div>
 
-          {/* Filter Pills */}
-          <div className="flex items-center gap-2 bg-slate-200/70 border border-slate-200 p-1 rounded-xl text-xs">
-            {["ALL", "APPROVED", "ESCALATED", "STOPPED"].map((ft) => (
-              <button
-                key={ft}
-                onClick={() => setFilterType(ft)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  filterType === ft
-                    ? 'bg-[#0066FF] text-white'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {ft}
-              </button>
-            ))}
+          {/* Action Tools: CSV Export & Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={handleDownloadCsv}
+              aria-label="Download Visible Audit Ledger as CSV"
+              className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <Download className="h-3.5 w-3.5 text-[#0066FF]" />
+              <span>Download CSV</span>
+            </button>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1 bg-slate-200/70 border border-slate-200 p-1 rounded-xl text-xs">
+              {["ALL", "APPROVED", "ESCALATED", "STOPPED"].map((ft) => (
+                <button
+                  key={ft}
+                  onClick={() => setFilterType(ft)}
+                  aria-label={`Filter audit ledger by ${ft}`}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    filterType === ft
+                      ? 'bg-[#0066FF] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {ft}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

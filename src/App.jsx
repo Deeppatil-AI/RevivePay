@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import LandingPage from './components/LandingPage.jsx';
 import Navbar from './components/Navbar.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ChaosBanner from './components/ChaosBanner.jsx';
 import BankTelemetryBar from './components/BankTelemetryBar.jsx';
 import MetricsHero from './components/MetricsHero.jsx';
@@ -359,43 +360,55 @@ export default function App() {
       {/* Main Multi-Module Views */}
       <main className="flex-1">
         {activeTab === 'batch' && (
-          <BatchRunner
-            transactions={transactions}
-            isRunning={isRunning}
-            onStartBatch={() => setIsRunning(true)}
-            onPauseBatch={() => setIsRunning(false)}
-            onStepBatch={handleStepBatch}
-            onRunAllInstantly={handleRunAllInstantly}
-            simulationSpeed={simulationSpeed}
-            setSimulationSpeed={setSimulationSpeed}
-            onOpenHinglishChat={(txn) => setActiveHinglishTxn(txn)}
-            onOpenTransactionDetails={(txn) => setActiveDetailTxn(txn)}
-            onDirectTestPay={(txn) => setActiveCheckoutTxn(txn)}
-          />
+          <ErrorBoundary viewName="Batch Auto-Pilot Sentinel">
+            <BatchRunner
+              transactions={transactions}
+              isRunning={isRunning}
+              onStartBatch={() => setIsRunning(true)}
+              onPauseBatch={() => setIsRunning(false)}
+              onStepBatch={handleStepBatch}
+              onRunAllInstantly={handleRunAllInstantly}
+              simulationSpeed={simulationSpeed}
+              setSimulationSpeed={setSimulationSpeed}
+              onOpenHinglishChat={(txn) => setActiveHinglishTxn(txn)}
+              onOpenTransactionDetails={(txn) => setActiveDetailTxn(txn)}
+              onDirectTestPay={(txn) => setActiveCheckoutTxn(txn)}
+            />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'ledger' && (
-          <LiveAuditLedger auditLogs={auditLogs} />
+          <ErrorBoundary viewName="Live Audit Ledger">
+            <LiveAuditLedger auditLogs={auditLogs} />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'invoices' && (
-          <B2BReceivablesView
-            onOpenVoiceCall={(inv) => setActiveVoiceItem(inv)}
-          />
+          <ErrorBoundary viewName="B2B Accounts Receivable">
+            <B2BReceivablesView
+              onOpenVoiceCall={(inv) => setActiveVoiceItem(inv)}
+            />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'disputes' && (
-          <DisputeShieldView />
+          <ErrorBoundary viewName="DisputeShield Chargeback Defense">
+            <DisputeShieldView />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'webhooks' && (
-          <WebhookSimulator
-            onWebhookDispatched={syncWithBackend}
-          />
+          <ErrorBoundary viewName="Webhook Ingestion Simulator">
+            <WebhookSimulator
+              onWebhookDispatched={syncWithBackend}
+            />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'analytics' && (
-          <ExecutiveAnalytics stats={stats} />
+          <ErrorBoundary viewName="Executive Analytics & Yield">
+            <ExecutiveAnalytics stats={stats} />
+          </ErrorBoundary>
         )}
       </main>
 

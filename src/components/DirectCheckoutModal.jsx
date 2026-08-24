@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, CheckCircle2, Lock, Smartphone, CreditCard, Landmark, QrCode, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
@@ -6,6 +6,14 @@ import { ApiService } from '../services/api.js';
 
 export default function DirectCheckoutModal({ txn, onClose, onSuccess }) {
   if (!txn) return null;
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const [activeMethod, setActiveMethod] = useState("upi");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -80,7 +88,12 @@ export default function DirectCheckoutModal({ txn, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="checkout-modal-merchant"
+    >
       <div className="bg-[#ffffff] dark:bg-[#0b192e] text-slate-900 dark:text-slate-100 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative font-sans border border-slate-200 dark:border-slate-800">
         
         {/* Razorpay Standard Checkout Header */}
@@ -90,7 +103,7 @@ export default function DirectCheckoutModal({ txn, onClose, onSuccess }) {
               ₹
             </div>
             <div>
-              <div className="font-bold text-sm leading-tight">{txn.merchant}</div>
+              <div id="checkout-modal-merchant" className="font-bold text-sm leading-tight">{txn.merchant}</div>
               <div className="text-[11px] text-sky-200">Razorpay Trusted Business</div>
             </div>
           </div>
@@ -240,6 +253,7 @@ export default function DirectCheckoutModal({ txn, onClose, onSuccess }) {
         {/* Close button on top right */}
         <button
           onClick={onClose}
+          aria-label="Close Checkout Modal"
           className="absolute top-3.5 right-3.5 text-slate-300 hover:text-white"
         >
           <X className="h-5 w-5" />

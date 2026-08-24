@@ -26,6 +26,14 @@ export default function VoiceCallModal({ targetItem, onClose, onCommitmentAgreed
     return () => clearInterval(timer);
   }, [callActive]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const startCall = () => {
     setCallActive(true);
     setTranscript([
@@ -64,7 +72,7 @@ export default function VoiceCallModal({ targetItem, onClose, onCommitmentAgreed
     setCallActive(false);
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
     if (onCommitmentAgreed) {
-      onCommitmentAgreed(targetItem.id, "2026-08-25");
+      onCommitmentAgreed(targetItem.id, "Friday (Simulated PTP Confirmed)");
     }
   };
 
@@ -86,7 +94,12 @@ export default function VoiceCallModal({ targetItem, onClose, onCommitmentAgreed
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="voice-modal-title"
+    >
       <div className="bg-white rounded-3xl p-6 border border-slate-200 w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
         
         {/* Call Header */}
@@ -96,12 +109,16 @@ export default function VoiceCallModal({ targetItem, onClose, onCommitmentAgreed
               <Phone className="h-4 w-4" />
             </div>
             <div>
-              <div className="font-bold text-sm text-[#0c2340]">AI Voice Recovery Agent</div>
+              <div id="voice-modal-title" className="font-bold text-sm text-[#0c2340]">AI Voice Recovery Agent</div>
               <div className="text-[10px] text-slate-500 font-mono">Hinglish Natural Dialect • Low Latency</div>
             </div>
           </div>
 
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+          <button 
+            onClick={onClose} 
+            aria-label="Close Voice Agent Modal"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>

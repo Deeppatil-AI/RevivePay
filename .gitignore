@@ -28,3 +28,10 @@ dist-ssr/
 # Logs
 logs/
 *.log
+
+# Media & Recordings
+recorded_videos/
+*.webm
+*.mp4
+*.avi
+scripts/record_walkthrough_video.py

@@ -1,175 +1,236 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  X, ArrowRight, ArrowLeft, Sparkles, CheckCircle2, 
-  Layers, Bot, ShieldCheck, PhoneCall, Award, Flame, Play 
+  X, Play, ArrowRight, ArrowLeft, CheckCircle2, 
+  Sparkles, Layers, ShieldCheck, FileText, Activity, Zap, ExternalLink 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function DemoTourModal({ 
-  isOpen, 
-  onClose, 
-  onSelectTab, 
-  onOpenAgentic, 
-  onOpenCert, 
-  onTriggerChaos 
-}) {
+export default function DemoTourModal({ isOpen, onClose, onNavigateToTab }) {
   if (!isOpen) return null;
 
   const [currentStep, setCurrentStep] = useState(0);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === 'ArrowLeft') handlePrev();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentStep, onClose]);
+
   const steps = [
     {
-      title: "Welcome to RevivePay Sentinel 2.5",
-      track: "Flagship Hackathon Overview",
-      desc: "RevivePay is an autonomous AI financial recovery sentinel for the Razorpay ecosystem. It eliminates 35% of revenue leaks caused by bank CBS outages, month-end liquidity delays, and fraudulent chargebacks.",
-      actionLabel: "Start Guided 4-Track Tour",
-      badge: "Overview",
-      icon: Sparkles,
-      color: "from-[#0052cc] to-[#0066FF]"
+      title: "1. Bank CBS Outage Interception & Reschedule",
+      subtitle: "Track 03: Autonomous Revenue Recovery",
+      icon: Layers,
+      color: "from-blue-600 to-indigo-600",
+      targetTab: "batch",
+      badge: "NPCI_U30 Telemetry",
+      keyPoints: [
+        "Detects midnight Core Banking Server (CBS) batch locks on SBI, HDFC, and ICICI.",
+        "Prevents blind immediate retries that trigger ₹45 bank bounce penalties and NPCI rate limits.",
+        "Autonomously reschedules recurring AutoPay execution to the 08:15 AM IST morning liquidity window."
+      ],
+      codeSnippet: "IF failureCode == 'NPCI_U30' => RESCHEDULE(nextSlot: '08:15 AM IST', penalty: '₹0')",
+      actionLabel: "View Subscriptions Batch"
     },
     {
-      title: "Track 01: Agentic Commerce Protocol (NPCI UAP / x402)",
-      track: "Track 01: AI Growth & Agentic Commerce",
-      desc: "Watch AI Buyer Procurement Agents negotiate volume pricing autonomously with the Razorpay Merchant Sentinel and execute machine-to-machine settlement with cryptographic signatures.",
-      actionLabel: "Launch Agentic UAP Console",
-      badge: "Track 01",
-      icon: Bot,
-      color: "from-purple-600 to-indigo-600",
-      onTrigger: () => onOpenAgentic()
+      title: "2. Autonomous Policy Gating & LTV Incentive",
+      subtitle: "Track 04: AI Finance Controller Guardrails",
+      icon: Zap,
+      color: "from-amber-500 to-orange-600",
+      targetTab: "batch",
+      badge: "Financial Governance",
+      keyPoints: [
+        "Evaluates customer Lifetime Value (LTV) before authorizing any retention discount.",
+        "Enforces strict bounds: Max 8% discount, absolute ₹250 cap, minimum ₹8,000 LTV.",
+        "Flags high-ticket amounts (> ₹10,000) for human approval with cryptographic audit tokens."
+      ],
+      codeSnippet: "GATING: LTV >= ₹8,000 ? APPROVE_DISCOUNT(₹200) : REQUIRE_APPROVAL",
+      actionLabel: "Explore Policy Engine"
     },
     {
-      title: "Track 02: DisputeShield Chargeback Defense",
-      track: "Track 02: AI Risk Manager / Chargebacks",
-      desc: "Automate chargeback defense dossiers by cross-referencing delivery OTP proof, 3DS 2.0 auth RRNs, and session fingerprints compliant with Visa/Mastercard Level-1 arbitration (91%+ win rate).",
-      actionLabel: "Explore DisputeShield Tab",
-      badge: "Track 02",
+      title: "3. 1-Click WhatsApp & Live Scannable UPI QR",
+      subtitle: "Track 03: Vernacular Natural Recovery",
+      icon: Activity,
+      color: "from-emerald-500 to-teal-600",
+      targetTab: "batch",
+      badge: "5 Indian Languages",
+      keyPoints: [
+        "Dispatches personalized conversational WhatsApp notifications in Hindi, Tamil, Telugu, Kannada, or Hinglish.",
+        "Generates live dynamic UPI QR codes (`upi://pay?pa=...&am=...`) that open directly on user phones.",
+        "Recovers over 68% of lost ARR within the first 24 hours with zero manual agent outreach."
+      ],
+      codeSnippet: "UPI DEEP-LINK: upi://pay?pa=revivepay@razorpay&am=2499&cu=INR",
+      actionLabel: "Test WhatsApp / Voice Modal"
+    },
+    {
+      title: "4. DisputeShield 4-Point Evidentiary Dossier",
+      subtitle: "Track 02: Chargeback & Friendly Fraud Defense",
       icon: ShieldCheck,
-      color: "from-rose-600 to-red-600",
-      onTrigger: () => onSelectTab('disputes')
+      color: "from-purple-600 to-pink-600",
+      targetTab: "disputes",
+      badge: "91.2% Win Rate",
+      keyPoints: [
+        "Ingests 3DS 2.0 Auth RRNs, signed delivery OTPs, courier waybills, and IP geolocation fingerprints.",
+        "Compiles arbitration-ready legal defense dossiers for Visa, Mastercard, and RuPay in < 3 seconds.",
+        "Exports full 4-Point Evidentiary PDF certificates directly client-side using jsPDF."
+      ],
+      codeSnippet: "EVIDENCE: [3DS_RRN, OTP_DELIVERY_PROOF, LOGISTICS_WAYBILL, DEVICE_IP]",
+      actionLabel: "Open DisputeShield Queue"
     },
     {
-      title: "Track 03: Vernacular Multi-Lingual Recovery",
-      track: "Track 03: AI Revenue Recovery",
-      desc: "Recover failed subscriptions via 1-click Razorpay UPI intent links across 5 Indian vernacular languages (Hindi, Tamil, Telugu, Kannada, Hinglish) with native voice synthesis and interactive voice calls.",
-      actionLabel: "View B2B Voice & WhatsApp Chaser",
-      badge: "Track 03",
-      icon: PhoneCall,
-      color: "from-emerald-600 to-teal-600",
-      onTrigger: () => onSelectTab('invoices')
-    },
-    {
-      title: "Track 04: Chaos Monkey & RBI Compliance Certificate",
-      track: "Track 04: AI Finance Controller & Recon",
-      desc: "Simulate sudden midnight SBI core banking crashes and watch the Sentinel auto-shift debits to morning health slots, preventing bounce penalties. Download the verifiable SHA-256 RBI Audit Certificate.",
-      actionLabel: "View Verifiable RBI Certificate",
-      badge: "Track 04",
-      icon: Award,
-      color: "from-amber-600 to-orange-600",
-      onTrigger: () => onOpenCert()
+      title: "5. Double-Entry Balanced Ledger & RBI Certificate",
+      subtitle: "Track 04: Reconciliation & State Machine",
+      icon: FileText,
+      color: "from-slate-700 to-slate-900",
+      targetTab: "analytics",
+      badge: "Cryptographic Merkle Root",
+      keyPoints: [
+        "Every settlement and refund generates immutable double-entry balanced Debit and Credit rows.",
+        "Maintains zero discrepancy (Sum of Debits == Sum of Credits) with strict SQLite persistence.",
+        "Generates official statutory RBI e-Mandate Cooling-Period Compliance Certificates with SHA-256 Merkle root hashes."
+      ],
+      codeSnippet: "BALANCE CHECK: Sum(Debits) === Sum(Credits) => BALANCED (Discrepancy: ₹0.00)",
+      actionLabel: "View Ledger Analytics"
     }
   ];
 
   const current = steps[currentStep];
-  const Icon = current.icon;
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(s => s + 1);
     } else {
-      confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
       onClose();
     }
   };
 
   const handlePrev = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
+    if (currentStep > 0) setCurrentStep(s => s - 1);
   };
 
-  const handleActionClick = () => {
-    if (current.onTrigger) current.onTrigger();
-    onClose();
+  const handleJumpToTab = () => {
+    if (onNavigateToTab && current.targetTab) {
+      onNavigateToTab(current.targetTab);
+      onClose();
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fade-in font-sans">
-      <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-xl shadow-2xl overflow-hidden flex flex-col">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in font-sans"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tour-modal-title"
+    >
+      <div className="bg-white dark:bg-[#0b192e] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         
-        {/* Step Banner */}
-        <div className={`p-6 bg-gradient-to-r ${current.color} text-white relative`}>
-          <button 
-            onClick={onClose} 
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-mono font-bold uppercase">
-              {current.badge}
-            </span>
-            <span className="text-white/80 text-xs font-mono">
-              Step {currentStep + 1} of {steps.length}
-            </span>
-          </div>
-
+        {/* Header Bar */}
+        <div className={`p-5 bg-gradient-to-r ${current.color} text-white flex items-center justify-between`}>
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0">
-              <Icon className="h-6 w-6" />
+            <div className="h-10 w-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold shadow-xs">
+              <current.icon className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-black tracking-tight">{current.title}</h3>
-              <p className="text-xs text-white/90 font-medium">{current.track}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
+                  Step {currentStep + 1} of {steps.length}
+                </span>
+                <span className="text-[11px] text-white/80 font-bold">{current.badge}</span>
+              </div>
+              <h3 id="tour-modal-title" className="font-extrabold text-base leading-tight mt-0.5">
+                {current.title}
+              </h3>
             </div>
           </div>
-        </div>
 
-        {/* Body Content */}
-        <div className="p-6 space-y-5 text-xs text-slate-600 leading-relaxed">
-          <p className="text-sm text-slate-700 font-medium leading-relaxed">
-            {current.desc}
-          </p>
-
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-            <span className="font-bold text-slate-800">Ready to test this track live?</span>
-            <button
-              onClick={handleActionClick}
-              className="px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition-all"
-            >
-              <span>{current.actionLabel}</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Footer Navigation */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-          <button
-            onClick={handlePrev}
-            disabled={currentStep === 0}
-            className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs disabled:opacity-40 flex items-center gap-1"
+          <button 
+            onClick={onClose}
+            aria-label="Close Demo Tour Modal"
+            className="p-1 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Previous</span>
+            <X className="h-5 w-5" />
           </button>
+        </div>
 
-          <div className="flex items-center gap-1.5">
-            {steps.map((_, i) => (
-              <span
-                key={i}
-                className={`h-2 rounded-full transition-all ${
-                  i === currentStep ? 'w-5 bg-[#0066FF]' : 'w-2 bg-slate-300'
-                }`}
-              ></span>
+        {/* Step Body */}
+        <div className="p-6 overflow-y-auto space-y-4 text-xs">
+          
+          <div className="text-[11px] font-bold text-[#0066FF] dark:text-sky-400 uppercase font-mono">
+            {current.subtitle}
+          </div>
+
+          {/* Key Bullet Points */}
+          <div className="space-y-2.5 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+            {current.keyPoints.map((pt, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <p className="text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                  {pt}
+                </p>
+              </div>
             ))}
           </div>
 
-          <button
-            onClick={handleNext}
-            className="px-4 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1"
-          >
-            <span>{currentStep === steps.length - 1 ? "Finish Tour" : "Next Step"}</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+          {/* Code/Logic snippet banner */}
+          <div className="p-3 bg-[#0c2340] text-sky-200 font-mono text-[11px] rounded-xl border border-slate-700 flex items-center gap-2">
+            <span className="text-amber-400 font-bold">⚡ Logic:</span>
+            <span className="truncate">{current.codeSnippet}</span>
+          </div>
+
+          {/* Quick Jump Link */}
+          <div className="pt-2 flex items-center justify-between">
+            <button
+              onClick={handleJumpToTab}
+              className="text-xs text-[#0066FF] dark:text-sky-400 font-bold flex items-center gap-1 hover:underline"
+            >
+              <span>{current.actionLabel}</span>
+              <ExternalLink className="h-3 w-3" />
+            </button>
+            <span className="text-[10px] text-slate-400 font-mono">Use Arrow Keys ← → to navigate</span>
+          </div>
+
+        </div>
+
+        {/* Footer Navigation Bar */}
+        <div className="p-4 bg-slate-50 dark:bg-[#070e1c] border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex gap-1.5">
+            {steps.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentStep(i)}
+                aria-label={`Jump to step ${i + 1}`}
+                className={`h-2 rounded-full transition-all ${
+                  currentStep === i 
+                    ? 'w-6 bg-[#0066FF]' 
+                    : 'w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400'
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrev}
+              disabled={currentStep === 0}
+              className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold disabled:opacity-30 transition-all flex items-center gap-1"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              <span>Back</span>
+            </button>
+
+            <button
+              onClick={handleNext}
+              className="px-4 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white text-xs font-extrabold shadow-sm transition-all flex items-center gap-1.5"
+            >
+              <span>{currentStep === steps.length - 1 ? "Finish Tour" : "Next Stage"}</span>
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
         </div>
 
       </div>

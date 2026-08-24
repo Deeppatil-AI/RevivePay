@@ -6,7 +6,7 @@ import {
   Smartphone, QrCode, Sliders, Sparkles, BarChart3
 } from 'lucide-react';
 
-export default function LandingPage({ onLaunchConsole }) {
+export default function LandingPage({ onLaunchConsole, onOpenTour }) {
   // Rotating hero headline
   const heroHeadlines = [
     "Stop losing 35% recurring revenue to bank downtime & payment failures.",
@@ -252,12 +252,13 @@ echo $recovery->action; // HINGLISH_ONECLICK_WHATSAPP`
                 <ArrowRight className="h-4 w-4" />
               </button>
 
-              <a
-                href="#features"
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold border border-slate-300 shadow-sm flex items-center justify-center gap-2 transition-all"
+              <button
+                onClick={onOpenTour}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-[#0066FF] text-sm font-bold border border-blue-200 shadow-sm flex items-center justify-center gap-2 transition-all"
               >
-                <span>Explore Features</span>
-              </a>
+                <Sparkles className="h-4 w-4 text-[#0066FF]" />
+                <span>60s Pitch Tour</span>
+              </button>
             </div>
 
             {/* Quick Proof Badges */}

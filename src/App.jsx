@@ -22,6 +22,7 @@ const VoiceCallModal = lazy(() => import('./components/VoiceCallModal.jsx'));
 const SplitPaymentModal = lazy(() => import('./components/SplitPaymentModal.jsx'));
 const AgenticCommerceModal = lazy(() => import('./components/AgenticCommerceModal.jsx'));
 const AuditCertificateModal = lazy(() => import('./components/AuditCertificateModal.jsx'));
+const DemoTourModal = lazy(() => import('./components/DemoTourModal.jsx'));
 import LiveCliDrawer from './components/LiveCliDrawer.jsx';
 
 import { generateFullBatch } from './data/syntheticBatch.js';
@@ -56,6 +57,7 @@ export default function App() {
   const [activeSplitTxn, setActiveSplitTxn] = useState(null);
   const [isAgenticOpen, setIsAgenticOpen] = useState(false);
   const [isCertOpen, setIsCertOpen] = useState(false);
+  const [isDemoTourOpen, setIsDemoTourOpen] = useState(false);
 
   // Sync data with backend on load
   const syncWithBackend = async (notify = false) => {
@@ -295,9 +297,22 @@ export default function App() {
   // If current view is the landing page
   if (currentView === 'landing') {
     return (
-      <LandingPage
-        onLaunchConsole={() => setCurrentView('app')}
-      />
+      <>
+        <LandingPage
+          onLaunchConsole={() => setCurrentView('app')}
+          onOpenTour={() => setIsDemoTourOpen(true)}
+        />
+        <Suspense fallback={null}>
+          <DemoTourModal
+            isOpen={isDemoTourOpen}
+            onClose={() => setIsDemoTourOpen(false)}
+            onNavigateToTab={(tab) => {
+              setActiveTab(tab);
+              setCurrentView('app');
+            }}
+          />
+        </Suspense>
+      </>
     );
   }
 
@@ -344,6 +359,7 @@ export default function App() {
         onGoToLanding={() => setCurrentView('landing')}
         onOpenAgenticModal={() => setIsAgenticOpen(true)}
         onOpenCertModal={() => setIsCertOpen(true)}
+        onOpenTour={() => setIsDemoTourOpen(true)}
       />
 
       {/* Chaos Monkey Disaster Simulator Banner */}
@@ -373,6 +389,7 @@ export default function App() {
               onOpenHinglishChat={(txn) => setActiveHinglishTxn(txn)}
               onOpenTransactionDetails={(txn) => setActiveDetailTxn(txn)}
               onDirectTestPay={(txn) => setActiveCheckoutTxn(txn)}
+              onImportCustomTxns={(newTxns) => setTransactions(prev => [...newTxns, ...prev])}
             />
           </ErrorBoundary>
         )}
@@ -497,6 +514,15 @@ export default function App() {
             }}
           />
         )}
+
+        <DemoTourModal
+          isOpen={isDemoTourOpen}
+          onClose={() => setIsDemoTourOpen(false)}
+          onNavigateToTab={(tab) => {
+            setActiveTab(tab);
+            setCurrentView('app');
+          }}
+        />
       </Suspense>
 
       {/* Footer */}

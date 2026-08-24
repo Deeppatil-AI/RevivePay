@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, CheckCircle2, Lock, Smartphone, CreditCard, Landmark, QrCode, AlertTriangle } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import { ApiService } from '../services/api.js';
@@ -186,10 +187,19 @@ export default function DirectCheckoutModal({ txn, onClose, onSuccess }) {
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#0b192e] p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Scan UPI QR to Pay</div>
-                  <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg mx-auto flex items-center justify-center text-slate-400">
-                    <QrCode className="h-12 w-12 text-[#0c2340] dark:text-white" />
+                <div className="bg-white dark:bg-[#0b192e] p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Live Scannable UPI QR Code</div>
+                  <p className="text-[10px] text-slate-500 mb-2">Scan with Google Pay, PhonePe, Paytm or any UPI App</p>
+                  <div className="p-3 bg-white rounded-xl inline-block border border-slate-200 shadow-sm mx-auto">
+                    <QRCodeSVG 
+                      value={`upi://pay?pa=revivepay@razorpay&pn=${encodeURIComponent(txn.merchant || 'Razorpay Merchant')}&am=${payableAmount}&cu=INR&tn=Invoice-${txn.id}`} 
+                      size={128}
+                      level="M"
+                      includeMargin={false}
+                    />
+                  </div>
+                  <div className="mt-2 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                    ₹{payableAmount.toLocaleString('en-IN')} • Verified Razorpay VPA
                   </div>
                 </div>
               </div>

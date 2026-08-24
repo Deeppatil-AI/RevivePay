@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Play, Pause, FastForward, StepForward, Filter, Search, 
   MessageSquare, ShieldAlert, CheckCircle, Clock, 
-  AlertTriangle, ArrowUpRight, Sparkles 
+  AlertTriangle, ArrowUpRight, Sparkles, Upload 
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function BatchRunner({
   transactions,
@@ -16,11 +17,74 @@ export default function BatchRunner({
   setSimulationSpeed,
   onOpenHinglishChat,
   onOpenTransactionDetails,
-  onDirectTestPay
+  onDirectTestPay,
+  onImportCustomTxns
 }) {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+  const fileInputRef = useRef(null);
+
+  const handleCsvUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target.result;
+        const lines = text.split('\n').filter(l => l.trim().length > 0);
+        if (lines.length <= 1) {
+          toast.error("CSV file is empty or missing headers");
+          return;
+        }
+
+        const newTxns = lines.slice(1).map((line, idx) => {
+          const parts = line.split(',').map(p => p.replace(/^"|"$/g, '').trim());
+          const customerName = parts[0] || `Customer ${idx + 1}`;
+          const amount = Number(parts[1]) || 1999;
+          const bank = parts[2] || "SBI";
+          const failureCode = parts[3] || "NPCI_U30";
+          const merchant = parts[4] || "Razorpay Enterprise Merchant";
+          const planName = parts[5] || "Annual AutoPay";
+
+          return {
+            id: `txn_csv_${Date.now()}_${idx}`,
+            mandateId: `man_csv_${Date.now()}_${idx}`,
+            rrn: `33819${Math.floor(100000 + Math.random() * 900000)}`,
+            customerName,
+            phone: "+91 98765 43210",
+            email: `${customerName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+            city: "Mumbai",
+            merchant,
+            category: "SAAS_B2B",
+            merchantCategory: "SAAS_B2B",
+            planName,
+            amount,
+            bank,
+            ifsc: `${bank}0001234`,
+            customerLtv: Math.max(amount * 4, 8000),
+            mandateLimit: amount * 2,
+            retryCount: 1,
+            failureCode,
+            failureName: failureCode === 'NPCI_U30' ? "Bank CBS Outage" : "Insufficient Liquidity",
+            failureCategory: "INFRASTRUCTURE",
+            failureReason: `Imported via CSV: ${failureCode}`,
+            failedAt: new Date().toISOString(),
+            recoveryResult: null
+          };
+        });
+
+        if (onImportCustomTxns) {
+          onImportCustomTxns(newTxns);
+        }
+        toast.success(`Imported ${newTxns.length} custom transactions from CSV!`);
+      } catch (err) {
+        toast.error(`Failed to parse CSV: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const categories = [
     { id: "ALL", label: "All Sectors" },
@@ -98,6 +162,22 @@ export default function BatchRunner({
               <FastForward className="h-3.5 w-3.5" />
               Instant Full Batch
             </button>
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Upload custom CSV cohort"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-300 transition-all shadow-sm"
+            >
+              <Upload className="h-3.5 w-3.5 text-purple-600" />
+              Import CSV
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleCsvUpload}
+              accept=".csv"
+              className="hidden"
+            />
 
             {/* Speed Selector */}
             <div className="flex items-center bg-slate-200/80 border border-slate-300 rounded-xl p-1 text-xs font-mono">

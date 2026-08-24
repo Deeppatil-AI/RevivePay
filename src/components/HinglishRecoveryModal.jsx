@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Send, CheckCircle2, Sparkles, Volume2, ArrowRight, Languages 
+  X, Send, CheckCircle2, Sparkles, Volume2, ArrowRight, Languages, QrCode 
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 
 export default function HinglishRecoveryModal({ txn, onClose, onPaymentSuccess }) {
@@ -238,6 +239,21 @@ export default function HinglishRecoveryModal({ txn, onClose, onPaymentSuccess }
 
               <div className="text-[11px] text-slate-500 mb-3">
                 Plan: <strong className="text-slate-800">{txn.planName}</strong> • UPI AutoPay mandate renewal.
+              </div>
+
+              {/* Dynamic QR Display */}
+              <div className="mb-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                <div className="text-[10px] font-bold text-slate-600 mb-1.5 flex items-center justify-center gap-1">
+                  <QrCode className="h-3 w-3 text-[#0066FF]" />
+                  <span>Scan with GPay / PhonePe / Paytm</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg inline-block border border-slate-200 shadow-xs mx-auto">
+                  <QRCodeSVG 
+                    value={`upi://pay?pa=revivepay@razorpay&pn=${encodeURIComponent(txn.merchant || 'Razorpay Merchant')}&am=${payableAmount}&cu=INR&tn=Invoice-${txn.id}`} 
+                    size={96}
+                    level="M"
+                  />
+                </div>
               </div>
 
               <button

@@ -44,7 +44,7 @@ const io = new SocketIOServer(httpServer, {
 initSocketIO(io);
 registerSocketForEvents(io);
 
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 // Security Hardening with Helmet
 app.use(
@@ -174,6 +174,6 @@ app.use((err, req, res, next) => {
 // Seed DB if empty
 seedDatabase();
 
-httpServer.listen(PORT, () => {
-  logger.info(`🚀 RevivePay Enterprise Backend running on http://localhost:${PORT}`);
+httpServer.listen(PORT, '0.0.0.0', () => {
+  logger.info(`🚀 RevivePay Enterprise Backend running on http://0.0.0.0:${PORT}`);
 });

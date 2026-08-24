@@ -3,10 +3,12 @@ import {
   Zap, ArrowRight, CheckCircle2, ShieldCheck, Activity, Terminal, 
   Code2, Copy, Check, ChevronDown, MessageSquare, 
   Layers, Building2, TrendingUp, Star, 
-  Smartphone, QrCode, Sliders, Sparkles, BarChart3
+  Smartphone, QrCode, Sliders, Sparkles, BarChart3, Lock 
 } from 'lucide-react';
+import LoginModal from './LoginModal.jsx';
 
 export default function LandingPage({ onLaunchConsole, onOpenTour }) {
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   // Rotating hero headline
   const heroHeadlines = [
     "Stop losing 35% recurring revenue to bank downtime & payment failures.",
@@ -206,13 +208,14 @@ echo $recovery->action; // HINGLISH_ONECLICK_WHATSAPP`
           {/* Action buttons */}
           <div className="flex items-center gap-2.5">
             <button
-              onClick={onLaunchConsole}
-              className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-[#0066FF] hidden sm:block"
+              onClick={() => setIsLoginOpen(true)}
+              className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-[#0066FF] hidden sm:flex items-center gap-1 transition-colors"
             >
-              Merchant Login
+              <Lock className="h-3 w-3 text-slate-400" />
+              <span>Merchant Login</span>
             </button>
             <button
-              onClick={onLaunchConsole}
+              onClick={() => onLaunchConsole('batch')}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white text-xs font-extrabold shadow-md hover:shadow-lg transition-all"
             >
               <span>Launch Live App</span>
@@ -513,7 +516,7 @@ echo $recovery->action; // HINGLISH_ONECLICK_WHATSAPP`
 
             <div className="pt-2">
               <button
-                onClick={onLaunchConsole}
+                onClick={() => onLaunchConsole('webhooks')}
                 className="px-5 py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white font-bold text-xs shadow-md transition-all"
               >
                 Test in Live Webhook Simulator
@@ -834,6 +837,12 @@ echo $recovery->action; // HINGLISH_ONECLICK_WHATSAPP`
           <span className="font-mono text-slate-500">Designed for Razorpay AI Hackathon • Tracks 01, 02, 03 & 04</span>
         </div>
       </footer>
+
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onLoginSuccess={() => onLaunchConsole('batch')}
+      />
 
     </div>
   );

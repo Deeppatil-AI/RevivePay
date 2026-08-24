@@ -299,7 +299,10 @@ export default function App() {
     return (
       <>
         <LandingPage
-          onLaunchConsole={() => setCurrentView('app')}
+          onLaunchConsole={(tab = 'batch') => {
+            if (typeof tab === 'string') setActiveTab(tab);
+            setCurrentView('app');
+          }}
           onOpenTour={() => setIsDemoTourOpen(true)}
         />
         <Suspense fallback={null}>

@@ -13,8 +13,11 @@ import { fileURLToPath } from 'url';
 
 import { logger } from './logger.js';
 import { initSocketIO } from './services/socketService.js';
+import { registerSocketForEvents } from './services/eventService.js';
 import { seedDatabase } from './database/seed.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
+
+// Route Imports
 import authRoutes from './routes/authRoutes.js';
 import recoveryRoutes from './routes/recoveryRoutes.js';
 import disputeRoutes from './routes/disputeRoutes.js';
@@ -23,6 +26,9 @@ import webhookRoutes from './routes/webhookRoutes.js';
 import chaosRoutes from './routes/chaosRoutes.js';
 import agenticRoutes from './routes/agenticRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import refundRoutes from './routes/refundRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -31,6 +37,7 @@ const io = new SocketIOServer(httpServer, {
 });
 
 initSocketIO(io);
+registerSocketForEvents(io);
 
 const PORT = process.env.PORT || 5000;
 
@@ -114,6 +121,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api', authMiddleware);
 
 // API Routes (Scoped to merchant)
+app.use('/api/payments', paymentRoutes);
+app.use('/api/refunds', refundRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/recovery', recoveryRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/invoices', invoiceRoutes);
@@ -138,7 +148,7 @@ if (fs.existsSync(distPath)) {
 // Global Error Handler with structured logger
 app.use((err, req, res, next) => {
   logger.error({ err, path: req.path }, 'Unhandled backend error');
-  res.status(500).json({ success: false, error: err.message || "Internal Server Error" });
+  res.status(err.statusCode || 500).json({ success: false, error: err.message || "Internal Server Error" });
 });
 
 // Seed DB if empty

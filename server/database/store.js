@@ -18,6 +18,11 @@ if (!fs.existsSync(dir)) {
 
 export const sqlite = new Database(dbPath);
 
+// Enable WAL mode for high concurrent write performance
+try {
+  sqlite.pragma('journal_mode = WAL');
+} catch (e) {}
+
 // Initialize schema
 sqlite.exec(`
   CREATE TABLE IF NOT EXISTS subscriptions (
@@ -116,6 +121,81 @@ sqlite.exec(`
     received_at TEXT,
     merchant_id TEXT DEFAULT 'merchant_rzp_primary'
   );
+
+  -- Priority 1: Payment State Machine & Financial Transactions
+  CREATE TABLE IF NOT EXISTS payments (
+    id TEXT PRIMARY KEY,
+    status TEXT NOT NULL, -- CREATED, PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED, REFUND_PENDING, REFUNDED
+    amount REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'INR',
+    sender TEXT NOT NULL,
+    sender_account TEXT,
+    receiver TEXT NOT NULL,
+    receiver_account TEXT,
+    payment_method TEXT NOT NULL, -- upi, card, netbanking
+    idempotency_key TEXT UNIQUE,
+    reference_id TEXT,
+    failure_reason TEXT,
+    fraud_score REAL DEFAULT 0,
+    fraud_level TEXT DEFAULT 'LOW',
+    fraud_decision TEXT DEFAULT 'ALLOW',
+    fraud_reasons TEXT,
+    refunded_amount REAL DEFAULT 0,
+    metadata TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    merchant_id TEXT DEFAULT 'merchant_rzp_primary'
+  );
+
+  -- Priority 2: Idempotency Protection Store
+  CREATE TABLE IF NOT EXISTS idempotency_records (
+    key TEXT PRIMARY KEY,
+    request_path TEXT NOT NULL,
+    request_hash TEXT NOT NULL,
+    response_status INTEGER NOT NULL,
+    response_body TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  -- Priority 6: Double-Entry Immutable Financial Ledger
+  CREATE TABLE IF NOT EXISTS ledger_entries (
+    id TEXT PRIMARY KEY,
+    transaction_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    entry_type TEXT NOT NULL, -- DEBIT or CREDIT
+    amount REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'INR',
+    balance_after REAL,
+    description TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  -- Priority 7: Refund Lifecycle Store
+  CREATE TABLE IF NOT EXISTS refunds (
+    id TEXT PRIMARY KEY,
+    payment_id TEXT NOT NULL,
+    amount REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'INR',
+    reason TEXT,
+    status TEXT NOT NULL, -- REFUND_REQUESTED, REFUND_PROCESSING, REFUNDED, REFUND_FAILED
+    idempotency_key TEXT,
+    failure_reason TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    merchant_id TEXT DEFAULT 'merchant_rzp_primary'
+  );
+
+  -- Priority 8: Event and Audit System (State Transitions)
+  CREATE TABLE IF NOT EXISTS payment_events (
+    id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL, -- PAYMENT_CREATED, PAYMENT_PROCESSING, PAYMENT_SUCCESS, PAYMENT_FAILED, PAYMENT_CANCELLED, PAYMENT_REFUND_REQUESTED, PAYMENT_REFUNDED, FRAUD_DETECTED
+    transaction_id TEXT NOT NULL,
+    user_id TEXT DEFAULT 'merchant_rzp_primary',
+    previous_state TEXT,
+    new_state TEXT,
+    metadata TEXT,
+    timestamp TEXT NOT NULL
+  );
 `);
 
 // Row deserializers
@@ -184,7 +264,7 @@ function rowToDispute(r) {
     customerPhone: r.customer_phone,
     dossierCompiled: Boolean(r.dossier_compiled),
     winProbability: r.win_probability,
-    evidenceItems: r.evidence_items ? JSON.parse(r.evidence_items) : {},
+    evidenceItems: r.evidence_items ? JSON.parse(r.evidence_items) : [],
     status: r.status,
     merchantId: r.merchant_id
   };
@@ -210,31 +290,84 @@ function rowToAuditLog(r) {
   };
 }
 
-function rowToPolicy(r) {
-  if (!r) {
-    return {
-      maxDiscountPercentage: 8,
-      absoluteDiscountCapRupees: 250,
-      minCustomerLtvForDiscount: 8000,
-      escalateAboveRupees: 10000,
-      maxAutomaticRetries: 3,
-      enforceMandateLimitStrict: true
-    };
-  }
+export function rowToPayment(r) {
+  if (!r) return null;
   return {
-    maxDiscountPercentage: r.max_discount_percentage,
-    absoluteDiscountCapRupees: r.absolute_discount_cap_rupees,
-    minCustomerLtvForDiscount: r.min_customer_ltv_for_discount,
-    escalateAboveRupees: r.escalate_above_rupees,
-    maxAutomaticRetries: r.max_automatic_retries,
-    enforceMandateLimitStrict: Boolean(r.enforce_mandate_limit_strict)
+    id: r.id,
+    status: r.status,
+    amount: r.amount,
+    currency: r.currency,
+    sender: r.sender,
+    senderAccount: r.sender_account,
+    receiver: r.receiver,
+    receiverAccount: r.receiver_account,
+    paymentMethod: r.payment_method,
+    idempotencyKey: r.idempotency_key,
+    referenceId: r.reference_id,
+    failureReason: r.failure_reason,
+    fraudScore: r.fraud_score,
+    fraudLevel: r.fraud_level,
+    fraudDecision: r.fraud_decision,
+    fraudReasons: r.fraud_reasons ? JSON.parse(r.fraud_reasons) : [],
+    refundedAmount: r.refunded_amount || 0,
+    metadata: r.metadata ? JSON.parse(r.metadata) : {},
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    merchantId: r.merchant_id
   };
 }
 
-// Database wrapper with SQLite persistence maintaining existing API compatibility
+export function rowToRefund(r) {
+  if (!r) return null;
+  return {
+    id: r.id,
+    paymentId: r.payment_id,
+    amount: r.amount,
+    currency: r.currency,
+    reason: r.reason,
+    status: r.status,
+    idempotencyKey: r.idempotency_key,
+    failureReason: r.failure_reason,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    merchantId: r.merchant_id
+  };
+}
+
+export function rowToLedgerEntry(r) {
+  if (!r) return null;
+  return {
+    id: r.id,
+    transactionId: r.transaction_id,
+    accountId: r.account_id,
+    entryType: r.entry_type,
+    amount: r.amount,
+    currency: r.currency,
+    balanceAfter: r.balance_after,
+    description: r.description,
+    createdAt: r.created_at
+  };
+}
+
+export function rowToPaymentEvent(r) {
+  if (!r) return null;
+  return {
+    id: r.id,
+    eventType: r.event_type,
+    transactionId: r.transaction_id,
+    userId: r.user_id,
+    previousState: r.previous_state,
+    newState: r.new_state,
+    metadata: r.metadata ? JSON.parse(r.metadata) : {},
+    timestamp: r.timestamp
+  };
+}
+
+// Global Database API Adapter
 export const db = {
+  // Subscriptions
   get subscriptions() {
-    const rows = sqlite.prepare('SELECT * FROM subscriptions ORDER BY failed_at DESC').all();
+    const rows = sqlite.prepare('SELECT * FROM subscriptions').all();
     return rows.map(rowToSubscription);
   },
   set subscriptions(txns) {
@@ -242,64 +375,65 @@ export const db = {
       INSERT OR REPLACE INTO subscriptions (
         id, mandate_id, rrn, customer_name, city, phone, email, merchant, category,
         plan_name, amount, bank, ifsc, customer_ltv, mandate_limit, retry_count,
-        failure_code, failure_name, failure_category, failure_reason, failed_at, recovery_result, merchant_id
+        failure_code, failure_name, failure_category, failure_reason, failed_at,
+        recovery_result, merchant_id
       ) VALUES (
         @id, @mandate_id, @rrn, @customer_name, @city, @phone, @email, @merchant, @category,
         @plan_name, @amount, @bank, @ifsc, @customer_ltv, @mandate_limit, @retry_count,
-        @failure_code, @failure_name, @failure_category, @failure_reason, @failed_at, @recovery_result, @merchant_id
+        @failure_code, @failure_name, @failure_category, @failure_reason, @failed_at,
+        @recovery_result, @merchant_id
       )
     `);
-
     const insertMany = sqlite.transaction((items) => {
       sqlite.prepare('DELETE FROM subscriptions').run();
       for (const t of items) {
         insert.run({
           id: t.id,
-          mandate_id: t.mandateId || t.mandate_id,
-          rrn: t.rrn,
+          mandate_id: t.mandateId || t.mandate_id || null,
+          rrn: t.rrn || null,
           customer_name: t.customerName || t.customer_name,
-          city: t.city,
-          phone: t.phone,
-          email: t.email,
-          merchant: t.merchant,
-          category: t.category || t.merchantCategory,
-          plan_name: t.planName || t.plan_name,
+          city: t.city || 'Mumbai',
+          phone: t.phone || '+91 98000 00000',
+          email: t.email || 'customer@revivepay.io',
+          merchant: t.merchant || 'Razorpay Merchant',
+          category: t.category || t.merchantCategory || 'SaaS',
+          plan_name: t.planName || t.plan_name || 'Standard Plan',
           amount: t.amount,
-          bank: t.bank,
-          ifsc: t.ifsc,
-          customer_ltv: t.customerLtv || t.customer_ltv,
-          mandate_limit: t.mandateLimit || t.mandate_limit,
+          bank: t.bank || 'SBI',
+          ifsc: t.ifsc || 'SBIN0001234',
+          customer_ltv: t.customerLtv || t.customer_ltv || 10000,
+          mandate_limit: t.mandateLimit || t.mandate_limit || 15000,
           retry_count: t.retryCount || t.retry_count || 0,
-          failure_code: t.failureCode || t.failure_code,
-          failure_name: t.failureName || t.failure_name,
-          failure_category: t.failureCategory || t.failure_category,
-          failure_reason: t.failureReason || t.failure_reason,
+          failure_code: t.failureCode || t.failure_code || 'NPCI_U30',
+          failure_name: t.failureName || t.failure_name || 'Bank CBS Outage',
+          failure_category: t.failureCategory || t.failure_category || 'INFRASTRUCTURE',
+          failure_reason: t.failureReason || t.failure_reason || 'Simulated failure',
           failed_at: t.failedAt || t.failed_at || new Date().toISOString(),
           recovery_result: t.recoveryResult ? JSON.stringify(t.recoveryResult) : null,
           merchant_id: t.merchantId || t.merchant_id || 'merchant_rzp_primary'
         });
       }
     });
-
     insertMany(txns);
   },
 
   updateSubscription(txn) {
     const stmt = sqlite.prepare(`
       UPDATE subscriptions SET
-        recovery_result = @recovery_result,
-        failure_code = @failure_code
+        retry_count = @retry_count,
+        recovery_result = @recovery_result
       WHERE id = @id
     `);
     stmt.run({
       id: txn.id,
-      recovery_result: txn.recoveryResult ? JSON.stringify(txn.recoveryResult) : null,
-      failure_code: txn.failureCode
+      retry_count: txn.retryCount || txn.retry_count || 0,
+      recovery_result: txn.recoveryResult ? JSON.stringify(txn.recoveryResult) : null
     });
   },
 
+  // Invoices
   get invoices() {
-    const rows = sqlite.prepare('SELECT * FROM invoices ORDER BY overdue_days DESC').all();
+    const rows = sqlite.prepare('SELECT * FROM invoices').all();
     return rows.map(rowToInvoice);
   },
   set invoices(invs) {
@@ -312,7 +446,6 @@ export const db = {
         @status, @ptp_date, @contact_person, @phone, @email, @items, @merchant_id
       )
     `);
-
     const insertMany = sqlite.transaction((items) => {
       sqlite.prepare('DELETE FROM invoices').run();
       for (const inv of items) {
@@ -325,7 +458,7 @@ export const db = {
           overdue_days: inv.overdueDays || inv.overdue_days,
           aging_bucket: inv.agingBucket || inv.aging_bucket,
           status: inv.status,
-          ptp_date: inv.ptpDate || inv.ptp_date,
+          ptp_date: inv.ptpDate || inv.ptp_date || null,
           contact_person: inv.contactPerson || inv.contact_person,
           phone: inv.phone,
           email: inv.email,
@@ -334,7 +467,6 @@ export const db = {
         });
       }
     });
-
     insertMany(invs);
   },
 
@@ -348,15 +480,16 @@ export const db = {
     stmt.run({
       id: inv.id,
       status: inv.status,
-      ptp_date: inv.ptpDate || null
+      ptp_date: inv.ptpDate || inv.ptp_date || null
     });
   },
 
+  // Disputes
   get disputes() {
-    const rows = sqlite.prepare('SELECT * FROM disputes ORDER BY chargeback_date DESC').all();
+    const rows = sqlite.prepare('SELECT * FROM disputes').all();
     return rows.map(rowToDispute);
   },
-  set disputes(disps) {
+  set disputes(ds) {
     const insert = sqlite.prepare(`
       INSERT OR REPLACE INTO disputes (
         id, payment_id, amount, reason_code, card_network, issuer_bank, chargeback_date,
@@ -368,7 +501,6 @@ export const db = {
         @evidence_items, @status, @merchant_id
       )
     `);
-
     const insertMany = sqlite.transaction((items) => {
       sqlite.prepare('DELETE FROM disputes').run();
       for (const d of items) {
@@ -385,33 +517,50 @@ export const db = {
           customer_phone: d.customerPhone || d.customer_phone,
           dossier_compiled: d.dossierCompiled ? 1 : 0,
           win_probability: d.winProbability || d.win_probability,
-          evidence_items: JSON.stringify(d.evidenceItems || d.evidence_items || {}),
+          evidence_items: JSON.stringify(d.evidenceItems || d.evidence_items || []),
           status: d.status,
           merchant_id: d.merchantId || d.merchant_id || 'merchant_rzp_primary'
         });
       }
     });
-
-    insertMany(disps);
+    insertMany(ds);
   },
 
   updateDispute(d) {
     const stmt = sqlite.prepare(`
       UPDATE disputes SET
-        status = @status,
-        dossier_compiled = @dossier_compiled
+        dossier_compiled = @dossier_compiled,
+        status = @status
       WHERE id = @id
     `);
     stmt.run({
       id: d.id,
-      status: d.status,
-      dossier_compiled: d.dossierCompiled ? 1 : 0
+      dossier_compiled: d.dossierCompiled ? 1 : 0,
+      status: d.status
     });
   },
 
+  // Policy
   get policy() {
-    const row = sqlite.prepare('SELECT * FROM policy LIMIT 1').get();
-    return rowToPolicy(row);
+    const row = sqlite.prepare('SELECT * FROM policy WHERE merchant_id = ?').get('merchant_rzp_primary');
+    if (!row) {
+      return {
+        maxDiscountPercentage: 8,
+        absoluteDiscountCapRupees: 250,
+        minCustomerLtvForDiscount: 8000,
+        escalateAboveRupees: 10000,
+        maxAutomaticRetries: 3,
+        enforceMandateLimitStrict: true
+      };
+    }
+    return {
+      maxDiscountPercentage: row.max_discount_percentage,
+      absoluteDiscountCapRupees: row.absolute_discount_cap_rupees,
+      minCustomerLtvForDiscount: row.min_customer_ltv_for_discount,
+      escalateAboveRupees: row.escalate_above_rupees,
+      maxAutomaticRetries: row.max_automatic_retries,
+      enforceMandateLimitStrict: Boolean(row.enforce_mandate_limit_strict)
+    };
   },
   set policy(p) {
     const stmt = sqlite.prepare(`
@@ -420,30 +569,27 @@ export const db = {
         min_customer_ltv_for_discount, escalate_above_rupees,
         max_automatic_retries, enforce_mandate_limit_strict, merchant_id
       ) VALUES (
-        'default_policy', @max_discount_percentage, @absolute_discount_cap_rupees,
+        'policy_primary', @max_discount_percentage, @absolute_discount_cap_rupees,
         @min_customer_ltv_for_discount, @escalate_above_rupees,
         @max_automatic_retries, @enforce_mandate_limit_strict, 'merchant_rzp_primary'
       )
     `);
     stmt.run({
       max_discount_percentage: p.maxDiscountPercentage || p.max_discount_percentage || 8,
-      absolute_discount_cap_rupees: p.absoluteDiscountCapRupees || p.maxDiscountRupeesCap || 250,
-      min_customer_ltv_for_discount: p.minCustomerLtvForDiscount || p.minLtvForIncentive || 8000,
-      escalate_above_rupees: p.escalateAboveRupees || p.requireHumanApprovalAboveAmount || 10000,
-      max_automatic_retries: p.maxAutomaticRetries || 3,
-      enforce_mandate_limit_strict: p.enforceMandateLimitStrict !== false ? 1 : 0
+      absolute_discount_cap_rupees: p.absoluteDiscountCapRupees || p.absolute_discount_cap_rupees || 250,
+      min_customer_ltv_for_discount: p.minCustomerLtvForDiscount || p.min_customer_ltv_for_discount || 8000,
+      escalate_above_rupees: p.escalateAboveRupees || p.escalate_above_rupees || 10000,
+      max_automatic_retries: p.maxAutomaticRetries || p.max_automatic_retries || 3,
+      enforce_mandate_limit_strict: (p.enforceMandateLimitStrict || p.enforce_mandate_limit_strict) ? 1 : 0
     });
   },
 
+  // Audit Logs
   get auditLogs() {
     const rows = sqlite.prepare('SELECT * FROM audit_logs ORDER BY timestamp DESC').all();
     return rows.map(rowToAuditLog);
   },
   set auditLogs(logs) {
-    if (!logs || logs.length === 0) {
-      sqlite.prepare('DELETE FROM audit_logs').run();
-      return;
-    }
     const insert = sqlite.prepare(`
       INSERT OR REPLACE INTO audit_logs (
         id, audit_token, txn_id, customer_name, merchant, diagnosis, policy,
@@ -505,6 +651,7 @@ export const db = {
     });
   },
 
+  // Webhook Events
   get webhookEvents() {
     const rows = sqlite.prepare('SELECT * FROM webhook_events ORDER BY received_at DESC').all();
     return rows.map(r => ({
@@ -530,6 +677,240 @@ export const db = {
       payload: JSON.stringify(event.payload || {}),
       received_at: event.receivedAt || event.received_at || new Date().toISOString(),
       merchant_id: event.merchantId || event.merchant_id || 'merchant_rzp_primary'
+    });
+  },
+
+  // --- Priority 1 & 3: Payments Store ---
+  get payments() {
+    const rows = sqlite.prepare('SELECT * FROM payments ORDER BY created_at DESC').all();
+    return rows.map(rowToPayment);
+  },
+
+  getPaymentById(id) {
+    const row = sqlite.prepare('SELECT * FROM payments WHERE id = ?').get(id);
+    return rowToPayment(row);
+  },
+
+  getPaymentByIdempotencyKey(key) {
+    if (!key) return null;
+    const row = sqlite.prepare('SELECT * FROM payments WHERE idempotency_key = ?').get(key);
+    return rowToPayment(row);
+  },
+
+  insertPayment(p) {
+    const stmt = sqlite.prepare(`
+      INSERT INTO payments (
+        id, status, amount, currency, sender, sender_account, receiver, receiver_account,
+        payment_method, idempotency_key, reference_id, failure_reason, fraud_score,
+        fraud_level, fraud_decision, fraud_reasons, refunded_amount, metadata,
+        created_at, updated_at, merchant_id
+      ) VALUES (
+        @id, @status, @amount, @currency, @sender, @sender_account, @receiver, @receiver_account,
+        @payment_method, @idempotency_key, @reference_id, @failure_reason, @fraud_score,
+        @fraud_level, @fraud_decision, @fraud_reasons, @refunded_amount, @metadata,
+        @created_at, @updated_at, @merchant_id
+      )
+    `);
+    stmt.run({
+      id: p.id,
+      status: p.status,
+      amount: p.amount,
+      currency: p.currency || 'INR',
+      sender: p.sender,
+      sender_account: p.senderAccount || p.sender_account || null,
+      receiver: p.receiver,
+      receiver_account: p.receiverAccount || p.receiver_account || null,
+      payment_method: p.paymentMethod || p.payment_method || 'upi',
+      idempotency_key: p.idempotencyKey || p.idempotency_key || null,
+      reference_id: p.referenceId || p.reference_id || null,
+      failure_reason: p.failureReason || p.failure_reason || null,
+      fraud_score: p.fraudScore !== undefined ? p.fraudScore : (p.fraud_score || 0),
+      fraud_level: p.fraudLevel || p.fraud_level || 'LOW',
+      fraud_decision: p.fraudDecision || p.fraud_decision || 'ALLOW',
+      fraud_reasons: JSON.stringify(p.fraudReasons || p.fraud_reasons || []),
+      refunded_amount: p.refundedAmount || p.refunded_amount || 0,
+      metadata: JSON.stringify(p.metadata || {}),
+      created_at: p.createdAt || p.created_at || new Date().toISOString(),
+      updated_at: p.updatedAt || p.updated_at || new Date().toISOString(),
+      merchant_id: p.merchantId || p.merchant_id || 'merchant_rzp_primary'
+    });
+    return this.getPaymentById(p.id);
+  },
+
+  updatePayment(p) {
+    const stmt = sqlite.prepare(`
+      UPDATE payments SET
+        status = @status,
+        failure_reason = @failure_reason,
+        reference_id = @reference_id,
+        fraud_score = @fraud_score,
+        fraud_level = @fraud_level,
+        fraud_decision = @fraud_decision,
+        fraud_reasons = @fraud_reasons,
+        refunded_amount = @refunded_amount,
+        metadata = @metadata,
+        updated_at = @updated_at
+      WHERE id = @id
+    `);
+    stmt.run({
+      id: p.id,
+      status: p.status,
+      failure_reason: p.failureReason || p.failure_reason || null,
+      reference_id: p.referenceId || p.reference_id || null,
+      fraud_score: p.fraudScore !== undefined ? p.fraudScore : (p.fraud_score || 0),
+      fraud_level: p.fraudLevel || p.fraud_level || 'LOW',
+      fraud_decision: p.fraudDecision || p.fraud_decision || 'ALLOW',
+      fraud_reasons: JSON.stringify(p.fraudReasons || p.fraud_reasons || []),
+      refunded_amount: p.refundedAmount !== undefined ? p.refundedAmount : (p.refunded_amount || 0),
+      metadata: JSON.stringify(p.metadata || {}),
+      updated_at: new Date().toISOString()
+    });
+    return this.getPaymentById(p.id);
+  },
+
+  // --- Priority 2: Idempotency Records ---
+  getIdempotencyRecord(key) {
+    const row = sqlite.prepare('SELECT * FROM idempotency_records WHERE key = ?').get(key);
+    if (!row) return null;
+    return {
+      key: row.key,
+      requestPath: row.request_path,
+      requestHash: row.request_hash,
+      responseStatus: row.response_status,
+      responseBody: JSON.parse(row.response_body),
+      createdAt: row.created_at
+    };
+  },
+
+  saveIdempotencyRecord({ key, requestPath, requestHash, responseStatus, responseBody }) {
+    const stmt = sqlite.prepare(`
+      INSERT OR REPLACE INTO idempotency_records (key, request_path, request_hash, response_status, response_body, created_at)
+      VALUES (@key, @request_path, @request_hash, @response_status, @response_body, @created_at)
+    `);
+    stmt.run({
+      key,
+      request_path: requestPath,
+      request_hash: requestHash,
+      response_status: responseStatus,
+      response_body: JSON.stringify(responseBody),
+      created_at: new Date().toISOString()
+    });
+  },
+
+  // --- Priority 6: Ledger Entries ---
+  get ledgerEntries() {
+    const rows = sqlite.prepare('SELECT * FROM ledger_entries ORDER BY created_at DESC').all();
+    return rows.map(rowToLedgerEntry);
+  },
+
+  getLedgerEntriesByTxnId(txnId) {
+    const rows = sqlite.prepare('SELECT * FROM ledger_entries WHERE transaction_id = ? ORDER BY created_at ASC').all(txnId);
+    return rows.map(rowToLedgerEntry);
+  },
+
+  insertLedgerEntry(entry) {
+    const stmt = sqlite.prepare(`
+      INSERT INTO ledger_entries (id, transaction_id, account_id, entry_type, amount, currency, balance_after, description, created_at)
+      VALUES (@id, @transaction_id, @account_id, @entry_type, @amount, @currency, @balance_after, @description, @created_at)
+    `);
+    stmt.run({
+      id: entry.id,
+      transaction_id: entry.transactionId || entry.transaction_id,
+      account_id: entry.accountId || entry.account_id,
+      entry_type: entry.entryType || entry.entry_type,
+      amount: entry.amount,
+      currency: entry.currency || 'INR',
+      balance_after: entry.balanceAfter || entry.balance_after || 0,
+      description: entry.description || null,
+      created_at: entry.createdAt || entry.created_at || new Date().toISOString()
+    });
+  },
+
+  // --- Priority 7: Refunds ---
+  get refunds() {
+    const rows = sqlite.prepare('SELECT * FROM refunds ORDER BY created_at DESC').all();
+    return rows.map(rowToRefund);
+  },
+
+  getRefundById(id) {
+    const row = sqlite.prepare('SELECT * FROM refunds WHERE id = ?').get(id);
+    return rowToRefund(row);
+  },
+
+  getRefundsByPaymentId(paymentId) {
+    const rows = sqlite.prepare('SELECT * FROM refunds WHERE payment_id = ? ORDER BY created_at DESC').all(paymentId);
+    return rows.map(rowToRefund);
+  },
+
+  getRefundByIdempotencyKey(key) {
+    if (!key) return null;
+    const row = sqlite.prepare('SELECT * FROM refunds WHERE idempotency_key = ?').get(key);
+    return rowToRefund(row);
+  },
+
+  insertRefund(r) {
+    const stmt = sqlite.prepare(`
+      INSERT INTO refunds (id, payment_id, amount, currency, reason, status, idempotency_key, failure_reason, created_at, updated_at, merchant_id)
+      VALUES (@id, @payment_id, @amount, @currency, @reason, @status, @idempotency_key, @failure_reason, @created_at, @updated_at, @merchant_id)
+    `);
+    stmt.run({
+      id: r.id,
+      payment_id: r.paymentId || r.payment_id,
+      amount: r.amount,
+      currency: r.currency || 'INR',
+      reason: r.reason || null,
+      status: r.status,
+      idempotency_key: r.idempotencyKey || r.idempotency_key || null,
+      failure_reason: r.failureReason || r.failure_reason || null,
+      created_at: r.createdAt || r.created_at || new Date().toISOString(),
+      updated_at: r.updatedAt || r.updated_at || new Date().toISOString(),
+      merchant_id: r.merchantId || r.merchant_id || 'merchant_rzp_primary'
+    });
+    return this.getRefundById(r.id);
+  },
+
+  updateRefund(r) {
+    const stmt = sqlite.prepare(`
+      UPDATE refunds SET
+        status = @status,
+        failure_reason = @failure_reason,
+        updated_at = @updated_at
+      WHERE id = @id
+    `);
+    stmt.run({
+      id: r.id,
+      status: r.status,
+      failure_reason: r.failureReason || r.failure_reason || null,
+      updated_at: new Date().toISOString()
+    });
+    return this.getRefundById(r.id);
+  },
+
+  // --- Priority 8: Payment Events ---
+  get paymentEvents() {
+    const rows = sqlite.prepare('SELECT * FROM payment_events ORDER BY timestamp DESC').all();
+    return rows.map(rowToPaymentEvent);
+  },
+
+  getEventsByTxnId(txnId) {
+    const rows = sqlite.prepare('SELECT * FROM payment_events WHERE transaction_id = ? ORDER BY timestamp ASC').all(txnId);
+    return rows.map(rowToPaymentEvent);
+  },
+
+  insertPaymentEvent(evt) {
+    const stmt = sqlite.prepare(`
+      INSERT INTO payment_events (id, event_type, transaction_id, user_id, previous_state, new_state, metadata, timestamp)
+      VALUES (@id, @event_type, @transaction_id, @user_id, @previous_state, @new_state, @metadata, @timestamp)
+    `);
+    stmt.run({
+      id: evt.id || `pevt_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+      event_type: evt.eventType || evt.event_type,
+      transaction_id: evt.transactionId || evt.transaction_id,
+      user_id: evt.userId || evt.user_id || 'merchant_rzp_primary',
+      previous_state: evt.previousState || evt.previous_state || null,
+      new_state: evt.newState || evt.new_state || null,
+      metadata: JSON.stringify(evt.metadata || {}),
+      timestamp: evt.timestamp || new Date().toISOString()
     });
   }
 };

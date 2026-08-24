@@ -2,7 +2,7 @@
 const API_BASE = "http://localhost:5000/api";
 
 export const ApiService = {
-  // Health
+  // Health & Metrics
   checkHealth: async () => {
     try {
       const res = await fetch(`${API_BASE}/health`);
@@ -12,7 +12,105 @@ export const ApiService = {
     }
   },
 
-  // Subscriptions
+  getMetrics: async () => {
+    const res = await fetch(`${API_BASE}/metrics`);
+    return await res.json();
+  },
+
+  // Priority 1 & 3: Secure Payment State Machine APIs
+  createPayment: async (paymentData) => {
+    const idempotencyKey = paymentData.idempotencyKey || `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const res = await fetch(`${API_BASE}/payments/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey
+      },
+      body: JSON.stringify({ ...paymentData, idempotencyKey })
+    });
+    return await res.json();
+  },
+
+  processPayment: async (paymentId, data = {}) => {
+    const res = await fetch(`${API_BASE}/payments/process/${paymentId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return await res.json();
+  },
+
+  verifyPayment: async (paymentId, data = {}) => {
+    const res = await fetch(`${API_BASE}/payments/verify/${paymentId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return await res.json();
+  },
+
+  cancelPayment: async (paymentId, reason) => {
+    const res = await fetch(`${API_BASE}/payments/cancel/${paymentId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    return await res.json();
+  },
+
+  getPayments: async (status) => {
+    const url = status ? `${API_BASE}/payments?status=${encodeURIComponent(status)}` : `${API_BASE}/payments`;
+    const res = await fetch(url);
+    return await res.json();
+  },
+
+  getPaymentDetails: async (id) => {
+    const res = await fetch(`${API_BASE}/payments/${id}`);
+    return await res.json();
+  },
+
+  getPaymentEvents: async (id) => {
+    const res = await fetch(`${API_BASE}/payments/${id}/events`);
+    return await res.json();
+  },
+
+  // Priority 7: Refunds API
+  createRefund: async (refundData) => {
+    const idempotencyKey = refundData.idempotencyKey || `idemp_rf_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const res = await fetch(`${API_BASE}/refunds/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey
+      },
+      body: JSON.stringify({ ...refundData, idempotencyKey })
+    });
+    return await res.json();
+  },
+
+  getRefunds: async (paymentId) => {
+    const url = paymentId ? `${API_BASE}/refunds/payment/${paymentId}` : `${API_BASE}/refunds`;
+    const res = await fetch(url);
+    return await res.json();
+  },
+
+  // Priority 5: Analytics & Ledger Verification
+  getTransactionAnalytics: async () => {
+    const res = await fetch(`${API_BASE}/analytics/transactions`);
+    return await res.json();
+  },
+
+  getFraudAnalytics: async () => {
+    const res = await fetch(`${API_BASE}/analytics/fraud`);
+    return await res.json();
+  },
+
+  getLedgerAnalytics: async () => {
+    const res = await fetch(`${API_BASE}/analytics/ledger`);
+    return await res.json();
+  },
+
+  // Subscriptions & Recovery
   getTransactions: async () => {
     const res = await fetch(`${API_BASE}/recovery/transactions`);
     return await res.json();

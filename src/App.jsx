@@ -189,13 +189,16 @@ export default function App() {
     if (isRunning) {
       const intervalMs = Math.max(200, 1500 / simulationSpeed);
       timerRef.current = setInterval(() => {
-        const pendingTxns = transactions.filter((t) => !t.recoveryResult);
-        if (pendingTxns.length === 0) {
-          setIsRunning(false);
-          clearInterval(timerRef.current);
-          return;
-        }
-        processTransaction(pendingTxns[0]);
+        setTransactions((currentTxns) => {
+          const pendingTxns = currentTxns.filter((t) => !t.recoveryResult);
+          if (pendingTxns.length === 0) {
+            setIsRunning(false);
+            clearInterval(timerRef.current);
+            return currentTxns;
+          }
+          processTransaction(pendingTxns[0]);
+          return currentTxns;
+        });
       }, intervalMs);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -203,29 +206,57 @@ export default function App() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning, simulationSpeed, transactions]);
+  }, [isRunning, simulationSpeed]);
+
+  const handleStartBatch = () => {
+    const pendingTxns = transactions.filter((t) => !t.recoveryResult);
+    if (pendingTxns.length === 0) {
+      const freshBatch = generateFullBatch(3);
+      setTransactions(freshBatch);
+      toast.success("Loaded fresh cohort of subscription mandates. Starting Auto-Pilot...");
+    } else {
+      toast.success("Starting Batch Auto-Pilot...");
+    }
+    setIsRunning(true);
+  };
 
   const handleStepBatch = () => {
-    const pendingTxns = transactions.filter((t) => !t.recoveryResult);
+    let currentTxns = transactions;
+    let pendingTxns = currentTxns.filter((t) => !t.recoveryResult);
+    if (pendingTxns.length === 0) {
+      const freshBatch = generateFullBatch(3);
+      setTransactions(freshBatch);
+      pendingTxns = freshBatch;
+      toast.success("Loaded fresh cohort. Step-diagnosing 1st transaction...");
+    }
     if (pendingTxns.length > 0) processTransaction(pendingTxns[0]);
   };
 
   const handleRunAllInstantly = async () => {
     setIsRunning(false);
+    let currentTxns = transactions;
+    const pending = currentTxns.filter((t) => !t.recoveryResult);
+    if (pending.length === 0) {
+      const freshBatch = generateFullBatch(3);
+      setTransactions(freshBatch);
+      currentTxns = freshBatch;
+    }
     try {
       const res = await ApiService.processBatch();
       if (res && res.transactions) {
         setTransactions(res.transactions);
         const aud = await ApiService.getAuditLogs();
         if (aud.auditLogs) setAuditLogs(aud.auditLogs);
+        toast.success("Processed all transactions in instant full batch");
         return;
       }
     } catch (e) {}
 
-    const pendingTxns = transactions.filter((t) => !t.recoveryResult);
+    const pendingTxns = currentTxns.filter((t) => !t.recoveryResult);
     for (const t of pendingTxns) {
       await processTransaction(t);
     }
+    toast.success("Processed all transactions in batch");
   };
 
   const handleResetBatch = async () => {
@@ -235,7 +266,7 @@ export default function App() {
     } catch (e) {}
     setTransactions(generateFullBatch(3));
     setAuditLogs([]);
-    toast.success("Simulation cohort reset with fresh Indian enterprise subscriptions");
+    toast.success("Cohort reset with fresh Indian enterprise subscriptions");
   };
 
   const handleDirectPaymentSuccess = (txnId, amount) => {
@@ -367,10 +398,11 @@ export default function App() {
             <BatchRunner
               transactions={transactions}
               isRunning={isRunning}
-              onStartBatch={() => setIsRunning(true)}
+              onStartBatch={handleStartBatch}
               onPauseBatch={() => setIsRunning(false)}
               onStepBatch={handleStepBatch}
               onRunAllInstantly={handleRunAllInstantly}
+              onResetBatch={handleResetBatch}
               simulationSpeed={simulationSpeed}
               setSimulationSpeed={setSimulationSpeed}
               onOpenHinglishChat={(txn) => setActiveHinglishTxn(txn)}

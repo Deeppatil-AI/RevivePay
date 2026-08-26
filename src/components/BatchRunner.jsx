@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { 
   Play, Pause, FastForward, StepForward, Filter, Search, 
   MessageSquare, ShieldAlert, CheckCircle, Clock, 
-  AlertTriangle, ArrowUpRight, Sparkles, Upload 
+  AlertTriangle, ArrowUpRight, Sparkles, Upload, RotateCcw 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -13,6 +13,7 @@ export default function BatchRunner({
   onPauseBatch,
   onStepBatch,
   onRunAllInstantly,
+  onResetBatch,
   simulationSpeed,
   setSimulationSpeed,
   onOpenHinglishChat,
@@ -162,6 +163,16 @@ export default function BatchRunner({
               <FastForward className="h-3.5 w-3.5" />
               Instant Full Batch
             </button>
+
+            {onResetBatch && (
+              <button
+                onClick={onResetBatch}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-300 transition-all shadow-sm"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                Reset Cohort
+              </button>
+            )}
 
             <button
               onClick={() => fileInputRef.current?.click()}

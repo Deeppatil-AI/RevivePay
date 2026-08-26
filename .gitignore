@@ -29,9 +29,18 @@ dist-ssr/
 logs/
 *.log
 
-# Media & Recordings
+# Media & Recordings & Speech Scripts
 recorded_videos/
 *.webm
 *.mp4
 *.avi
 scripts/
+DEMO_VIDEO_SCRIPT.md
+RevivePay_Pitch_Script.pdf
+docs/SPEECH_AND_EXPLAINER_FOR_VOICEOVER.md
+docs/SPEECH_SCRIPT.md
+
+# Database binaries
+server/database/*.sqlite
+server/database/*.sqlite-wal
+server/database/*.sqlite-shm
